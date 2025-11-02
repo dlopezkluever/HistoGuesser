@@ -1,0 +1,260 @@
+
+## **9\. Development Phases**
+
+### **Phase 1: MVP \- Free Play Mode**
+
+**Timeline:** 3-4 weeks
+
+**Deliverables:**
+
+* Core gameplay loop (guess location, time, name)  
+* Leaflet map integration with pin placement  
+* Timeline slider with BCE/CE toggle  
+* Name input with basic fuzzy matching  
+* Scoring system fully implemented  
+* Random figure selection from seeded database  
+* Single-player Free Play mode only  
+* Basic UI with responsive design  
+* 20-30 manually curated figures in database
+
+**Exit Criteria:**
+
+* Can play complete 10-round game  
+* Scoring accurate and tested  
+* Works on desktop and mobile browsers  
+* No crashes or game-breaking bugs
+
+### **Phase 2: User Accounts & Daily Challenge**
+
+**Timeline:** 2-3 weeks
+
+**Deliverables:**
+
+* Supabase Auth integration (signup/login)  
+* User profiles with username and avatar  
+* Daily Challenge mode with fixed figure sets  
+* Global leaderboard (Top 100\)  
+* Streak tracking and persistence  
+* Player stats (games played, best score)  
+* One-attempt-per-day enforcement  
+* Expand database to 100+ figures
+
+**Exit Criteria:**
+
+* Users can create accounts and login  
+* Daily challenge updates at midnight UTC  
+* Leaderboard displays correctly  
+* Streaks persist across sessions
+
+### **Phase 3: Multiplayer**
+
+**Timeline:** 3-4 weeks
+
+**Deliverables:**
+
+* Lobby creation with 6-character room codes  
+* Join by code functionality  
+* Waiting room with player list  
+* Real-time synchronization via Supabase Realtime  
+* Server-authoritative timing (45s per round)  
+* Round-by-round leaderboard updates  
+* Final results screen with winner  
+* Graceful handling of disconnections
+
+**Exit Criteria:**
+
+* 2-8 players can complete a game together  
+* All players see same figures and timing  
+* Scores sync correctly after each round  
+* No desync issues or soft-locks
+
+### **Phase 4: Polish & Optimization**
+
+**Timeline:** 2-3 weeks
+
+**Deliverables:**
+
+* Smooth transitions and animations  
+* Loading states and error handling  
+* Mobile optimization and touch improvements  
+* Performance profiling and optimization  
+* Bug fixes from beta testing  
+* Content expansion (200+ figures)  
+* PWA setup (optional)
+
+**Exit Criteria:**
+
+* Smooth 60fps animations  
+* \<2s page load times  
+* No console errors  
+* Positive beta tester feedback
+
+---
+
+## **10\. Content Strategy**
+
+### **10.1 Figure Selection Criteria**
+
+**MVP Target:** 20-30 figures for Phase 1, 100+ for Phase 2, 200+ for Phase 4
+
+**Inclusion Criteria:**
+
+* Historical/Cultural Significance   
+* Clear visual representation available (portrait/photo)  
+* Geographic and temporal diversity  
+* Appropriate for general audiences  
+* Public domain image available
+
+**Diversity Goals:**
+* Geographic: All continents represented  
+* Temporal: Ancient to modern eras  
+* Professional: Leaders, scientists, artists, philosophers, activists  
+
+### **10.2 Image Sourcing**
+
+**MVP Approach:**
+
+* Manual curation from Wikimedia Commons  
+* Filter by "Public Domain" license  
+* Verify license status before adding  
+* Store license metadata with each image  
+* Prefer clear, high-quality portraits
+
+**Attribution:**
+
+* Store source\_url for each image  
+* Display credit when required by license  
+* Link to original source in reveal phase
+
+### **10.3 Educational Content**
+
+**Description Guidelines:**
+
+* 50-100 words per figure  
+* Focus on key achievements and historical context  
+* Humorous or "Fun Fact"
+* Source from Wikipedia API initially  
+* Manual review and editing for quality
+
+---
+
+## **11\. Out of Scope for MVP**
+
+The following features are explicitly deferred to post-MVP phases:
+
+### **Deferred Features:**
+
+* ✗ Achievements and badges system  
+* ✗ Friend system and friend leaderboards  
+* ✗ Era packs or category filters  
+* ✗ AI-generated descriptions (GPT integration)  
+* ✗ Offline play / PWA (may be added in Phase 4\)  
+* ✗ Social sharing (result cards with images)  
+* ✗ In-game hints or lifelines (except Free Play skip)  
+* ✗ Custom avatar uploads  
+* ✗ Email verification for accounts  
+* ✗ Password reset flow (basic only)  
+* ✗ Admin panel for content curation  
+* ✗ Analytics dashboard  
+* ✗ Multi-language support  
+* ✗ Accessibility features (WCAG compliance)  
+* ✗ Dark mode  
+* ✗ Sound effects and music  
+* ✗ Tutorial/onboarding flow
+
+### **Not Planned:**
+
+* Monetization (ads, premium subscriptions)  
+* Mobile native apps (iOS/Android)  
+* Content moderation system  
+* User-generated content  
+* Team-based multiplayer  
+* Voice chat or text chat in lobbies
+
+---
+
+## **12\. Success Criteria & KPIs**
+
+### **MVP Success Metrics:**
+
+* **Technical:**
+
+  * Game completion rate \>80%  
+  * \<100ms average scoring calculation time  
+  * \<2s page load time  
+  * Zero critical bugs in production  
+* **User Engagement:**
+
+  * Average 2+ games per user session  
+  * 50% of players complete all 10 rounds
+
+  * Daily Challenge participation \>30% of daily active users  
+* **Multiplayer:**
+
+  * Average 3+ players per lobby  
+  * \<5% disconnect rate during games  
+  * 70% of lobbies complete all 10 rounds
+
+### **Post-MVP Goals:**
+
+* 1,000+ daily active users  
+* 50+ Daily Challenge completions per day  
+* Average streak length \>7 days  
+* 60% week-over-week retention
+
+---
+
+## **13\. Risk Assessment**
+
+### **Technical Risks:**
+
+* **Supabase Realtime Limitations:** May not scale beyond 10 concurrent lobbies  
+  * *Mitigation:* Plan custom WebSocket server as fallback  
+* **Image Licensing Issues:** Accidental inclusion of non-public-domain images  
+  * *Mitigation:* Manual review process, store license metadata  
+* **Fuzzy Matching Complexity:** Name matching may be too strict or too lenient  
+  * *Mitigation:* Extensive testing, adjustable thresholds
+
+### **Content Risks:**
+
+* **Figure Curation Bottleneck:** Manual curation is time-consuming  
+  * *Mitigation:* Start with small high-quality set, expand gradually  
+* **Historical Accuracy:** Risk of factual errors in descriptions  
+  * *Mitigation:* Wikipedia sources, peer review process
+
+### **User Experience Risks:**
+
+* **Mobile Performance:** Map interactions may be clunky on small screens  
+  * *Mitigation:* Extensive mobile testing, touch-optimized controls  
+* **Difficulty Balance:** Game may be too hard or too easy  
+  * *Mitigation:* Playtesting, adjustable scoring formulas
+
+---
+
+## **14\. Open Questions & Future Decisions**
+
+### **Questions Requiring Resolution:**
+
+1. **Daily Challenge Timing:** Exactly when should new challenges release? (Midnight UTC recommended)  
+2. **Lobby Expiration:** How long should inactive lobbies persist before cleanup? (24 hours proposed)  
+3. **Figure Retirement:** Should figures appear in Daily Challenge multiple times, or rotate out?  
+4. **Leaderboard Archival:** Keep all-time leaderboards or only recent days?  
+5. **Mobile-First vs Desktop-First:** Which platform to prioritize for initial design?
+
+### **Design Decisions for Later Phases:**
+
+* Achievement system design  
+* Friend system architecture  
+* Era pack categorization  
+* Premium features (if any)  
+* Content moderation tools
+
+---
+
+**Next Steps:**
+
+1. Technical architecture document  
+2. Database schema specification  
+3. API endpoint specification  
+4. UI/UX wireframes and mockups  
+5. Development sprint planning
