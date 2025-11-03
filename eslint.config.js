@@ -3,6 +3,7 @@ import typescript from '@typescript-eslint/eslint-plugin'
 import typescriptParser from '@typescript-eslint/parser'
 import vue from 'eslint-plugin-vue'
 import prettier from 'eslint-config-prettier'
+import globals from 'globals'
 
 export default [
   js.configs.recommended,
@@ -17,9 +18,8 @@ export default [
         sourceType: 'module',
       },
       globals: {
-        browser: true,
-        es2021: true,
-        node: true,
+        ...globals.browser,
+        ...globals.node,
       },
     },
     plugins: {
