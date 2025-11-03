@@ -18,8 +18,9 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vue-vendor': ['vue', 'vue-router'],
-          'map-vendor': ['leaflet', 'leaflet-geodesic'],
+          'map-vendor': ['leaflet'],
           'supabase-vendor': ['@supabase/supabase-js'],
+          'utils-vendor': ['dayjs', 'zustand'],
         },
       },
     },

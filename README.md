@@ -19,15 +19,16 @@ A web-based geography and history guessing game where players identify historica
 ## Tech Stack
 
 ### Frontend
-- **Vite** - Fast build tool and dev server
-- **Vue 3** - Progressive JavaScript framework
-- **TypeScript** - Type-safe development
-- **TailwindCSS** - Utility-first CSS framework
-- **Zustand** - Lightweight state management
-- **Leaflet.js** - Interactive maps with OpenStreetMap
+- **Vite 7** - Fast build tool and dev server
+- **Vue 3.5** - Progressive JavaScript framework
+- **TypeScript 5.6** - Type-safe development
+- **TailwindCSS 3.4** - Utility-first CSS framework
+- **Zustand 5** - Lightweight state management
+- **Leaflet.js 1.9** - Interactive maps with OpenStreetMap
+- **Day.js 1.11** - Lightweight date/time library
 
 ### Backend
-- **Supabase** - PostgreSQL database, authentication, and real-time
+- **Supabase 2.78** - PostgreSQL database, authentication, and real-time
 - **Vercel** - Frontend hosting and deployment
 
 ## Getting Started

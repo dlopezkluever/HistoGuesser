@@ -1,14 +1,9 @@
-import js from '@eslint/js'
 import typescript from '@typescript-eslint/eslint-plugin'
 import typescriptParser from '@typescript-eslint/parser'
 import vue from 'eslint-plugin-vue'
 import prettier from 'eslint-config-prettier'
-import globals from 'globals'
 
 export default [
-  js.configs.recommended,
-  ...vue.configs['flat/recommended'],
-  prettier,
   {
     files: ['**/*.{js,mjs,cjs,ts,vue}'],
     languageOptions: {
@@ -18,14 +13,25 @@ export default [
         sourceType: 'module',
       },
       globals: {
-        ...globals.browser,
-        ...globals.node,
+        // Browser globals
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+        console: 'readonly',
+        // Node globals
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+        module: 'readonly',
+        require: 'readonly',
       },
     },
     plugins: {
       '@typescript-eslint': typescript,
+      vue: vue,
     },
     rules: {
+      ...typescript.configs.recommended.rules,
       'vue/multi-word-component-names': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': [
@@ -35,6 +41,8 @@ export default [
       'no-console': ['warn', { allow: ['warn', 'error'] }],
     },
   },
+  ...vue.configs['flat/recommended'],
+  prettier,
   {
     files: ['**/*.vue'],
     languageOptions: {

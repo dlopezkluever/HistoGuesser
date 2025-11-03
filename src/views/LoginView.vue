@@ -49,7 +49,7 @@ const handleSubmit = async () => {
         {{ isSignUp ? 'Sign Up' : 'Login' }}
       </h1>
 
-      <form @submit.prevent="handleSubmit" class="space-y-4">
+      <form class="space-y-4" @submit.prevent="handleSubmit">
         <div v-if="isSignUp">
           <label class="block text-sm mb-2">Username</label>
           <input v-model="username" type="text" class="input w-full" required />
@@ -71,13 +71,13 @@ const handleSubmit = async () => {
       </form>
 
       <div class="text-center">
-        <button @click="toggleMode" class="text-noir-gold hover:underline">
+        <button class="text-noir-gold hover:underline" @click="toggleMode">
           {{ isSignUp ? 'Already have an account? Login' : "Don't have an account? Sign Up" }}
         </button>
       </div>
 
       <div class="text-center">
-        <button @click="router.push({ name: 'home' })" class="text-noir-text/70 hover:underline">
+        <button class="text-noir-text/70 hover:underline" @click="router.push({ name: 'home' })">
           ← Back to Home
         </button>
       </div>

@@ -6,10 +6,10 @@ This document captures best practices, conventions, limitations, and common pitf
 
 ## 1. Frontend
 
-### 1.1 Vite + Vue 3 + TypeScript
+### 1.1 Vite 7 + Vue 3.5 + TypeScript 5.6
 
 **Overview & Why**
-- Vite provides fast dev server and HMR. Vue 3 gives a component-first approach and Composition API to organize logic. TypeScript adds type-safety across components and stores.
+- Vite 7 provides fast dev server and HMR with improved performance. Vue 3.5 gives a component-first approach and Composition API to organize logic. TypeScript 5.6 adds type-safety across components and stores with enhanced inference.
 
 **Best practices**
 - Use the Composition API with clear `setup()` separation of concerns (hooks/composables for shared logic).
@@ -60,10 +60,10 @@ This document captures best practices, conventions, limitations, and common pitf
 
 ---
 
-### 1.3 Zustand (State Management)
+### 1.3 Zustand 5 (State Management)
 
 **Overview & Why**
-- A lightweight state solution. Works well with small-to-medium scale apps and avoids Redux complexity.
+- A lightweight state solution (v5 with improved TypeScript support). Works well with small-to-medium scale apps and avoids Redux complexity.
 
 **Best practices**
 - Organize stores by domain: `useAuthStore`, `useGameStore`, `useLobbyStore`, `useUIStore`.
