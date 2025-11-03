@@ -34,8 +34,9 @@ const handleSubmit = async () => {
     }
 
     router.push({ name: 'home' })
-  } catch (error: any) {
-    uiStore.showToast('error', error.message || 'Authentication failed')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Authentication failed'
+    uiStore.showToast('error', message)
   } finally {
     loading.value = false
   }

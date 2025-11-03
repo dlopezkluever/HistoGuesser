@@ -37,7 +37,6 @@ export function calculateNameScore(
   // Check aliases
   const allNames = [correctName, ...aliases]
   let bestMatch = 0
-  let bestMatchedName = ''
 
   for (const name of allNames) {
     const normalized = normalizeString(name)
@@ -52,7 +51,6 @@ export function calculateNameScore(
 
     if (similarity > bestMatch) {
       bestMatch = similarity
-      bestMatchedName = name
     }
   }
 

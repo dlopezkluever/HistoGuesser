@@ -10,7 +10,7 @@ interface Toast {
 interface Modal {
   id: string
   component: string
-  props?: Record<string, any>
+  props?: Record<string, unknown>
 }
 
 interface UIStore {
@@ -24,7 +24,7 @@ interface UIStore {
   removeToast: (id: string) => void
 
   // Modal actions
-  openModal: (component: string, props?: Record<string, any>) => void
+  openModal: (component: string, props?: Record<string, unknown>) => void
   closeModal: (id: string) => void
   closeAllModals: () => void
 

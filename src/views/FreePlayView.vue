@@ -14,8 +14,9 @@ onMounted(async () => {
     uiStore.setLoading(true)
     const figures = await getRandomFigures(10)
     gameStore.startGame('free_play', figures)
-  } catch (error: any) {
-    uiStore.showToast('error', 'Failed to load game: ' + error.message)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    uiStore.showToast('error', 'Failed to load game: ' + message)
     router.push({ name: 'home' })
   } finally {
     uiStore.setLoading(false)

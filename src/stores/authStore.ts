@@ -43,8 +43,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
           set({ user: null, session: null })
         }
       })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error occurred'
+      set({ error: message, loading: false })
       console.error('Auth initialization error:', error)
     }
   },
@@ -55,8 +56,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { session } = await authService.signIn(email, password)
       const user = await authService.getCurrentUser()
       set({ user, session, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sign in failed'
+      set({ error: message, loading: false })
       throw error
     }
   },
@@ -67,8 +69,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { session } = await authService.signUp(email, password, username)
       const user = await authService.getCurrentUser()
       set({ user, session, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sign up failed'
+      set({ error: message, loading: false })
       throw error
     }
   },
@@ -78,8 +81,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: true, error: null })
       await authService.signOut()
       set({ user: null, session: null, loading: false })
-    } catch (error: any) {
-      set({ error: error.message, loading: false })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Sign out failed'
+      set({ error: message, loading: false })
       throw error
     }
   },

@@ -55,11 +55,12 @@ export function haversineDistance(
 }
 
 /**
- * Currently: the toRadians function is declared but never used.
  * Normalizes an angle from degrees to radians.
- * Note: Not exported, used internally if helper functions are added later.
+ * Note: Reserved for future helper functions. Currently unused.
+ * @internal
  */
-function toRadians(degrees: number): number {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _toRadians(degrees: number): number {
   return degrees * (Math.PI / 180)
 }
 
