@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 import type { User, AuthState } from '@/types/user'
 import * as authService from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
@@ -13,7 +13,7 @@ interface AuthStore extends AuthState {
   setError: (error: string | null) => void
 }
 
-export const useAuthStore = create<AuthStore>((set) => ({
+const store = createStore<AuthStore>((set) => ({
   user: null,
   session: null,
   loading: true,
@@ -92,4 +92,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setLoading: (loading: boolean) => set({ loading }),
   setError: (error: string | null) => set({ error }),
 }))
+
+// Export vanilla store
+export const authStore = store
 

@@ -14,7 +14,9 @@ export default {
       },
       fontFamily: {
         title: ['Bebas Neue', 'sans-serif'],
+        bebas: ['Bebas Neue', 'sans-serif'],
         heading: ['Playfair Display', 'serif'],
+        playfair: ['Playfair Display', 'serif'],
         body: ['Inter', 'Noto Sans', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },

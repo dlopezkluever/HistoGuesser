@@ -1,5 +1,5 @@
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
+import { authStore } from '@/stores/authStore'
 
 /**
  * Auth guard - redirects to login if user is not authenticated
@@ -9,9 +9,9 @@ export function authGuard(
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
-  const authStore = useAuthStore()
+  const auth = authStore.getState()
 
-  if (!authStore.user && !authStore.loading) {
+  if (!auth.user && !auth.loading) {
     // User is not authenticated, redirect to login
     next({
       name: 'login',
@@ -31,9 +31,9 @@ export function guestGuard(
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
-  const authStore = useAuthStore()
+  const auth = authStore.getState()
 
-  if (authStore.user) {
+  if (auth.user) {
     // User is already authenticated, redirect to home
     next({ name: 'home' })
   } else {

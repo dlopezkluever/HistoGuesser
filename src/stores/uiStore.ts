@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 
 interface Toast {
   id: string
@@ -16,7 +16,7 @@ interface Modal {
 interface UIStore {
   toasts: Toast[]
   modals: Modal[]
-  isLoading: boolean
+  loading: boolean
   isSidebarOpen: boolean
 
   // Toast actions
@@ -29,17 +29,17 @@ interface UIStore {
   closeAllModals: () => void
 
   // Loading actions
-  setLoading: (isLoading: boolean) => void
+  setLoading: (loading: boolean) => void
 
   // Sidebar actions
   toggleSidebar: () => void
   setSidebarOpen: (isOpen: boolean) => void
 }
 
-export const useUIStore = create<UIStore>((set, get) => ({
+const store = createStore<UIStore>((set, get) => ({
   toasts: [],
   modals: [],
-  isLoading: false,
+  loading: false,
   isSidebarOpen: false,
 
   showToast: (type, message, duration = 3000) => {
@@ -83,7 +83,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
     set({ modals: [] })
   },
 
-  setLoading: (isLoading) => set({ isLoading }),
+  setLoading: (loading) => set({ loading }),
 
   toggleSidebar: () => {
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen }))
@@ -91,4 +91,7 @@ export const useUIStore = create<UIStore>((set, get) => ({
 
   setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
 }))
+
+// Export vanilla store
+export const uiStore = store
 

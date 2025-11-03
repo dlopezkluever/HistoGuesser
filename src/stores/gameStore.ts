@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 import type { GameSession, RoundState, Guess, GameMode } from '@/types/game'
 import type { Figure } from '@/types/figure'
 import { calculateRoundScore } from '@/lib/scoring/calculateScore'
@@ -20,7 +20,7 @@ interface GameStore {
   resetGame: () => void
 }
 
-export const useGameStore = create<GameStore>((set, get) => ({
+const store = createStore<GameStore>((set, get) => ({
   session: null,
   currentRound: null,
   isPlaying: false,
@@ -171,4 +171,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       isPaused: false,
     }),
 }))
+
+// Export vanilla store for direct access  
+export const gameStore = store
 

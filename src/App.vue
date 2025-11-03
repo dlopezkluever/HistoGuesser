@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useAuthStore } from './stores/authStore'
-
-const authStore = useAuthStore()
+import { authStore } from './stores/authStore'
 
 onMounted(async () => {
   // Initialize auth state on app load
-  await authStore.initialize()
+  await authStore.getState().initialize()
 })
 </script>
 
