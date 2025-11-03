@@ -55,6 +55,7 @@ export function haversineDistance(
 }
 
 /**
+ * Currently: the toRadians function is declared but never used.
  * Normalizes an angle from degrees to radians.
  * Note: Not exported, used internally if helper functions are added later.
  */
