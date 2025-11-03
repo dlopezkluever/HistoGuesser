@@ -1,0 +1,91 @@
+import { create } from 'zustand'
+import type { User, AuthState } from '@/types/user'
+import * as authService from '@/lib/supabase/auth'
+import { supabase } from '@/lib/supabase/client'
+
+interface AuthStore extends AuthState {
+  initialize: () => Promise<void>
+  signIn: (email: string, password: string) => Promise<void>
+  signUp: (email: string, password: string, username: string) => Promise<void>
+  signOut: () => Promise<void>
+  setUser: (user: User | null) => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+}
+
+export const useAuthStore = create<AuthStore>((set) => ({
+  user: null,
+  session: null,
+  loading: true,
+  error: null,
+
+  initialize: async () => {
+    try {
+      set({ loading: true, error: null })
+
+      // Get current session
+      const session = await authService.getSession()
+
+      if (session) {
+        // Get user profile
+        const user = await authService.getCurrentUser()
+        set({ user, session, loading: false })
+      } else {
+        set({ user: null, session: null, loading: false })
+      }
+
+      // Listen for auth changes
+      supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          const user = await authService.getCurrentUser()
+          set({ user, session })
+        } else if (event === 'SIGNED_OUT') {
+          set({ user: null, session: null })
+        }
+      })
+    } catch (error: any) {
+      set({ error: error.message, loading: false })
+      console.error('Auth initialization error:', error)
+    }
+  },
+
+  signIn: async (email: string, password: string) => {
+    try {
+      set({ loading: true, error: null })
+      const { session } = await authService.signIn(email, password)
+      const user = await authService.getCurrentUser()
+      set({ user, session, loading: false })
+    } catch (error: any) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  signUp: async (email: string, password: string, username: string) => {
+    try {
+      set({ loading: true, error: null })
+      const { session } = await authService.signUp(email, password, username)
+      const user = await authService.getCurrentUser()
+      set({ user, session, loading: false })
+    } catch (error: any) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  signOut: async () => {
+    try {
+      set({ loading: true, error: null })
+      await authService.signOut()
+      set({ user: null, session: null, loading: false })
+    } catch (error: any) {
+      set({ error: error.message, loading: false })
+      throw error
+    }
+  },
+
+  setUser: (user: User | null) => set({ user }),
+  setLoading: (loading: boolean) => set({ loading }),
+  setError: (error: string | null) => set({ error }),
+}))
+
