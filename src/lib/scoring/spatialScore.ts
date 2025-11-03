@@ -1,4 +1,4 @@
-import { calculateHaversineDistance } from '../geography/haversine'
+import { haversineDistance } from '../geography/haversine'
 
 /**
  * Calculate spatial accuracy score based on distance
@@ -16,7 +16,7 @@ export function calculateSpatialScore(
   correctLat: number,
   correctLon: number
 ): { score: number; distance: number } {
-  const distance = calculateHaversineDistance(guessedLat, guessedLon, correctLat, correctLon)
+  const distance = haversineDistance(guessedLat, guessedLon, correctLat, correctLon)
 
   // Linear decay: lose 10 points per 100 km
   // ~8,000 km off = 0 points

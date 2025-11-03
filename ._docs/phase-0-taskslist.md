@@ -1,5 +1,5 @@
 ## **Phase 0: Project Setup & Infrastructure**
-Please read through the following key docs to understand what we are building, first our @PRD.md but also our  @user-flow.md   and @low-context-ui-theme.md  and our @tech_stack.md  and once you understand our project, please implement the tasks found in Phase 0 @phase-0-taskslist.md 
+
 ### **Environment & Tooling Setup**
 
 * \[ \] Initialize Vite \+ Vue 3 \+ TypeScript project

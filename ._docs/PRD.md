@@ -610,7 +610,7 @@ const roundScore \= Math.min(2500, spatialScore \+ temporalScore \+ nameScore \+
 | State Management | Zustand | Lightweight global state |
 | Mapping | Leaflet.js | Interactive maps |
 | Map Tiles | OpenStreetMap | Free map data |
-| Distance Calculation | Leaflet.Geodesic | Haversine distance |
+| Distance Calculation | Custom Haversine | Great-circle distance calculation |
 | Name Matching | Levenshtein/Fuse.js | Fuzzy string matching |
 | Backend | Supabase | PostgreSQL \+ Auth \+ Realtime |
 | Hosting | Vercel | Frontend CDN \+ serverless |

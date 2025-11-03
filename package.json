@@ -14,7 +14,6 @@
     "@supabase/supabase-js": "^2.39.0",
     "dayjs": "^1.11.10",
     "leaflet": "^1.9.4",
-    "leaflet-geodesic": "^2.7.0",
     "vue": "^3.4.0",
     "vue-router": "^4.2.5",
     "zustand": "^4.4.7"
