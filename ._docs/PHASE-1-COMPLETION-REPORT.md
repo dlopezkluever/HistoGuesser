@@ -399,7 +399,7 @@ src/
 └── (other directories from Phase 0)
 ```
 
-**Total Files Created/Updated:** 18 files + 5 bug fix files
+**Total Files Created/Updated:** 18 files + 6 bug fix files
 
 ---
 
@@ -467,6 +467,29 @@ src/
 - ✅ Empty figures table
 - ✅ Network failures
 - ✅ Malformed data
+
+### ✅ Anonymous Free Play Access Fix
+
+**Issue:** Free Play mode failed for unauthenticated users with "No figures available" error, despite PRD requirement that Free Play should work without login
+
+**Root Cause:** Row Level Security (RLS) policy on figures table only allowed authenticated users to read data, blocking anonymous access
+
+**Solution Implemented:**
+- ✅ Created migration `005_anonymous_freeplay_access.sql`
+- ✅ Added RLS policy allowing anonymous users to read figures table
+- ✅ Maintained security for authenticated-only features (stats, scores, etc.)
+- ✅ Preserved existing authenticated user policies
+
+**Migration Created:**
+```sql
+CREATE POLICY "Figures are viewable by anonymous users"
+  ON figures FOR SELECT
+  TO anon
+  USING (true);
+```
+
+**Files Created:**
+- ✅ `supabase/migrations/005_anonymous_freeplay_access.sql` - NEW migration
 
 ### ✅ View Component Fixes
 
@@ -614,7 +637,7 @@ src/
 - 📱 Fully responsive design
 - ♿ Accessibility compliant
 - 🔧 Zero linting errors
-- 🐛 All production bugs resolved
+- 🐛 5 production bugs resolved
 - 💯 Type-safe TypeScript throughout
 - 🔒 Production-ready authentication
 - 📖 Well-documented codebase
@@ -624,7 +647,7 @@ src/
 - 📁 2 composables created (useMap + useStore)
 - 💾 1 dev dependency added (react for Zustand compatibility)
 - 🐛 0 linting errors
-- 🐛 All production bugs resolved
+- 🐛 5 production bugs resolved
 - ⚡ Performance optimized
 - 🎯 PRD requirements met
 - 🔒 Production-ready authentication
