@@ -140,7 +140,7 @@ Total game maximum: **25,000 points** (10 rounds)
 
 ## Contributing
 
-This project was developed by Daniel Lopez from Hays, America.  Criticisms & Contributions are welcome!
+Moon & Monitor Classic. This project was developed by Daniel Lopez from Hays, America. Criticisms & Contributions are welcome!
 
 ## License
 
