@@ -176,11 +176,21 @@
   * \[ \] Style with noir aesthetic  
 * \[ \] Implement user preferences
 
-  * \[ \] Store settings in local storage  
-  * \[ \] Sync settings to database (logged-in)  
-  * \[ \] Apply preferences across sessions  
-  * \[ \] Add reset to defaults option  
+  * \[ \] Store settings in local storage
+  * \[ \] Sync settings to database (logged-in)
+  * \[ \] Apply preferences across sessions
+  * \[ \] Add reset to defaults option
   * \[ \] Validate preference values
+* \[ \] Add email verification (stretch goal)
+  * \[ \] Implement email confirmation flow
+  * \[ \] Add verification status tracking
+  * \[ \] Handle unverified user restrictions
+  * \[ \] Create verification email templates
+* \[ \] Implement map language settings (stretch goal)
+  * \[ \] Add language selector for map labels
+  * \[ \] Support multiple languages (English, Spanish, French, etc.)
+  * \[ \] Store language preference per user
+  * \[ \] Apply language to Leaflet map tiles
 
 ### **Mobile Optimization**
 
