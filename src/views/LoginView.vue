@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/authStore'
-import { useUIStore } from '@/stores/uiStore'
+import { authStore } from '@/stores/authStore'
+import { uiStore } from '@/stores/uiStore'
 
 const router = useRouter()
-const authStore = useAuthStore()
-const uiStore = useUIStore()
 
 const isSignUp = ref(false)
 const email = ref('')
@@ -26,17 +24,17 @@ const handleSubmit = async () => {
     loading.value = true
 
     if (isSignUp.value) {
-      await authStore.signUp(email.value, password.value, username.value)
-      uiStore.showToast('success', 'Account created successfully!')
+      await authStore.getState().signUp(email.value, password.value, username.value)
+      uiStore.getState().showToast('success', 'Account created successfully!')
     } else {
-      await authStore.signIn(email.value, password.value)
-      uiStore.showToast('success', 'Logged in successfully!')
+      await authStore.getState().signIn(email.value, password.value)
+      uiStore.getState().showToast('success', 'Logged in successfully!')
     }
 
     router.push({ name: 'home' })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Authentication failed'
-    uiStore.showToast('error', message)
+    uiStore.getState().showToast('error', message)
   } finally {
     loading.value = false
   }

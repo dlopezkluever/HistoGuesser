@@ -6,6 +6,7 @@ import { uiStore } from '@/stores/uiStore'
 import { useStore } from '@/composables/useStore'
 import { getRandomFigures } from '@/lib/supabase/queries'
 import { GameplayView, ResultsScreen } from '@/components/game'
+import { Card, Button } from '@/components/ui'
 import type { Guess as GameGuess } from '@/types/game'
 import type { RoundScore } from '@/types/score'
 
@@ -15,6 +16,7 @@ const ui = useStore(uiStore)
 
 const gameplayRef = ref<InstanceType<typeof GameplayView> | null>(null)
 const showResults = ref(false)
+const error = ref<string | null>(null)
 
 const currentFigure = computed(() => game.value.currentRound?.figure || null)
 const currentRoundNumber = computed(() => game.value.currentRound?.round_number || 1)
@@ -108,14 +110,32 @@ const handleBackToMenu = () => {
 // Initialize game
 const initGame = async () => {
   try {
+    error.value = null
     uiStore.getState().setLoading(true)
     const figures = await getRandomFigures(10)
+    
+    if (!figures || figures.length === 0) {
+      throw new Error('No figures available. Please run database migrations first.')
+    }
+    
     gameStore.getState().startGame('free_play', figures)
     showResults.value = false
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Unknown error'
-    uiStore.getState().showToast('error', 'Failed to load game: ' + message)
-    router.push({ name: 'home' })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error occurred'
+    error.value = message
+    console.error('Failed to load game:', err)
+    
+    // Show toast if UI store is available
+    try {
+      uiStore.getState().showToast('error', message)
+    } catch {
+      // UI store might not be initialized yet
+    }
+    
+    // Don't redirect immediately - let user see the error
+    setTimeout(() => {
+      router.push({ name: 'home' })
+    }, 3000)
   } finally {
     uiStore.getState().setLoading(false)
   }
@@ -128,8 +148,30 @@ onMounted(() => {
 
 <template>
   <div class="free-play-view">
+    <!-- Error state -->
+    <div v-if="error" class="error-container">
+      <Card class="error-card">
+        <h2 class="text-2xl font-playfair text-noir-red mb-4">⚠️ Error Loading Game</h2>
+        <p class="text-noir-text mb-4">{{ error }}</p>
+        <div class="error-help">
+          <p class="text-sm text-noir-text/70 mb-2">Common fixes:</p>
+          <ul class="text-sm text-noir-text/60 list-disc list-inside mb-4 space-y-1">
+            <li>Make sure you've run all Supabase migrations</li>
+            <li>Check your .env file has correct Supabase credentials</li>
+            <li>Verify the figures table has data (should have 30 rows)</li>
+          </ul>
+        </div>
+        <Button variant="primary" @click="router.push({ name: 'home' })">
+          Back to Menu
+        </Button>
+        <Button variant="secondary" class="mt-2" @click="initGame">
+          Try Again
+        </Button>
+      </Card>
+    </div>
+
     <!-- Loading state -->
-    <div v-if="isLoading" class="loading-container">
+    <div v-else-if="isLoading" class="loading-container">
       <div class="spinner"></div>
       <p class="text-noir-text mt-4">Loading game...</p>
     </div>
@@ -167,8 +209,17 @@ onMounted(() => {
   @apply min-h-screen bg-noir-bg;
 }
 
-.loading-container {
-  @apply flex flex-col items-center justify-center min-h-screen;
+.loading-container,
+.error-container {
+  @apply flex flex-col items-center justify-center min-h-screen p-4;
+}
+
+.error-card {
+  @apply max-w-md w-full;
+}
+
+.error-help {
+  @apply mb-4;
 }
 
 .spinner {
