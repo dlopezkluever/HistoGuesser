@@ -2,6 +2,8 @@ import { createStore } from 'zustand/vanilla'
 import type { GameSession, RoundState, Guess, GameMode } from '@/types/game'
 import type { Figure } from '@/types/figure'
 import { calculateRoundScore } from '@/lib/scoring/calculateScore'
+import { updateStatsAfterGame } from '@/lib/supabase/queries'
+import { authStore } from './authStore'
 
 interface GameStore {
   session: GameSession | null
@@ -140,7 +142,7 @@ const store = createStore<GameStore>((set, get) => ({
     })
   },
 
-  endGame: () => {
+  endGame: async () => {
     const { session, currentRound } = get()
     if (!session) return
 
@@ -148,16 +150,29 @@ const store = createStore<GameStore>((set, get) => ({
     const totalScore =
       session.total_score + (currentRound?.score?.total || 0)
 
+    const completedSession = {
+      ...session,
+      rounds,
+      total_score: totalScore,
+      completed_at: new Date().toISOString(),
+    }
+
     set({
-      session: {
-        ...session,
-        rounds,
-        total_score: totalScore,
-        completed_at: new Date().toISOString(),
-      },
+      session: completedSession,
       currentRound: null,
       isPlaying: false,
     })
+
+    // Update player stats if user is logged in
+    const auth = authStore.getState()
+    if (auth.user) {
+      try {
+        await updateStatsAfterGame(auth.user.id, totalScore, session.mode)
+      } catch (error) {
+        console.error('Failed to update player stats:', error)
+        // Don't fail the game end if stats update fails
+      }
+    }
   },
 
   pauseGame: () => set({ isPaused: true }),

@@ -82,6 +82,83 @@ export async function updatePlayerStats(
 }
 
 /**
+ * Update player stats after completing a game
+ */
+export async function updateStatsAfterGame(
+  userId: string,
+  gameScore: number,
+  gameMode: string
+): Promise<PlayerStats> {
+  // Only update stats for logged-in users
+  if (!userId) {
+    throw new Error('User ID required')
+  }
+
+  // Get current stats (create if doesn't exist)
+  let currentStats: PlayerStats
+  try {
+    currentStats = await getPlayerStats(userId)
+  } catch (error) {
+    // Stats don't exist, create them
+    const { data: newStats, error: createError } = await supabase
+      .from('player_stats')
+      .insert({
+        user_id: userId,
+        total_games: 0,
+        best_score: 0,
+        daily_streak: 0,
+      })
+      .select()
+      .single()
+
+    if (createError) throw createError
+    currentStats = newStats
+  }
+
+  // Calculate updates
+  const updates: Partial<PlayerStats> = {
+    total_games: currentStats.total_games + 1,
+  }
+
+  // Update best score if this game is better
+  if (gameScore > currentStats.best_score) {
+    updates.best_score = gameScore
+  }
+
+  // Update daily streak for Daily Challenge mode
+  if (gameMode === 'daily') {
+    const today = new Date().toISOString().split('T')[0]
+    const lastDaily = currentStats.last_daily_date
+
+    if (!lastDaily) {
+      // First daily game
+      updates.daily_streak = 1
+      updates.last_daily_date = today
+    } else if (lastDaily === today) {
+      // Already played today, don't increment streak
+    } else {
+      // Check if it's consecutive day
+      const lastDate = new Date(lastDaily)
+      const currentDate = new Date(today)
+      const diffTime = currentDate.getTime() - lastDate.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+
+      if (diffDays === 1) {
+        // Consecutive day
+        updates.daily_streak = currentStats.daily_streak + 1
+      } else if (diffDays > 1) {
+        // Streak broken
+        updates.daily_streak = 1
+      }
+      updates.last_daily_date = today
+    }
+  }
+
+  // Apply updates
+  return await updatePlayerStats(userId, updates)
+}
+
+/**
  * Submit Daily Challenge score
  */
 export async function submitDailyScore(

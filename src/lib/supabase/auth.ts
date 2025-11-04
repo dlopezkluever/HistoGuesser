@@ -113,20 +113,150 @@ export async function getSession() {
 }
 
 /**
+ * Sync user profile between auth.users and users table
+ * Creates profile record if it doesn't exist and handles edge cases
+ */
+export async function syncUserProfile(authUser: any): Promise<User> {
+  if (!authUser?.id) {
+    throw new Error('No auth user provided')
+  }
+
+  try {
+    // Check if user profile exists
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', authUser.id)
+      .maybeSingle()
+
+    if (existingProfile) {
+      // Profile exists, update email if it changed (in case user updated email in auth)
+      if (existingProfile.email !== authUser.email) {
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({
+            email: authUser.email,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', authUser.id)
+
+        if (updateError) {
+          console.warn('Failed to update user email:', updateError)
+        }
+      }
+      return existingProfile
+    }
+
+    // Profile doesn't exist, create it
+    const username = authUser.user_metadata?.username ||
+                     authUser.email?.split('@')[0] ||
+                     `user_${authUser.id.slice(0, 8)}`
+
+    // Ensure username is available
+    const isAvailable = await isUsernameAvailable(username)
+    const finalUsername = isAvailable ? username : `${username}_${Date.now().toString().slice(-4)}`
+
+    const { data: newProfile, error: createError } = await supabase
+      .from('users')
+      .insert({
+        id: authUser.id,
+        email: authUser.email,
+        username: finalUsername,
+      })
+      .select()
+      .single()
+
+    if (createError) {
+      // Handle duplicate key errors (race condition)
+      if (createError.code === '23505') {
+        // Try to fetch the profile that was created by another request
+        const { data: retryProfile, error: retryError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+
+        if (retryProfile && !retryError) {
+          return retryProfile
+        }
+      }
+      throw createError
+    }
+
+    return newProfile
+  } catch (error) {
+    console.error('Error syncing user profile:', error)
+    throw new Error('Failed to sync user profile. Please try logging out and back in.')
+  }
+}
+
+/**
+ * Ensure user data consistency across auth and profile tables
+ * Call this after auth state changes to guarantee sync
+ */
+export async function ensureUserConsistency(authUser: any): Promise<User> {
+  if (!authUser?.id) {
+    throw new Error('No auth user provided for consistency check')
+  }
+
+  try {
+    // First, ensure profile exists and is synced
+    const profile = await syncUserProfile(authUser)
+
+    // Ensure player stats exist
+    const { error: statsError } = await supabase
+      .from('player_stats')
+      .upsert({
+        user_id: authUser.id,
+        // Other fields will use defaults
+      }, {
+        onConflict: 'user_id'
+      })
+
+    if (statsError) {
+      console.warn('Failed to ensure player stats exist:', statsError)
+      // Don't fail the whole operation for stats issues
+    }
+
+    return profile
+  } catch (error) {
+    console.error('Error ensuring user consistency:', error)
+    throw error
+  }
+}
+
+/**
  * Get the current user profile
  */
 export async function getCurrentUser(): Promise<User | null> {
   const session = await getSession()
   if (!session?.user) return null
 
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('id', session.user.id)
-    .single()
+  try {
+    // Try to get existing profile
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
 
-  if (error) throw error
-  return data
+    if (error && error.code === 'PGRST116') {
+      // Profile doesn't exist, sync it
+      return await syncUserProfile(session.user)
+    }
+
+    if (error) throw error
+    return data
+  } catch (error) {
+    console.error('Error getting current user:', error)
+    // If all else fails, try to sync the profile
+    try {
+      return await syncUserProfile(session.user)
+    } catch (syncError) {
+      console.error('Failed to sync user profile:', syncError)
+      throw error
+    }
+  }
 }
 
 /**

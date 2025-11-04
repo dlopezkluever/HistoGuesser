@@ -81,9 +81,6 @@
             <button class="icon-button" title="Profile" @click="handleProfile">
               👤
             </button>
-            <button class="icon-button" title="Settings" @click="handleSettings">
-              ⚙️
-            </button>
             <button class="icon-button" title="Logout" @click="handleLogout">
               🚪
             </button>
@@ -126,7 +123,6 @@ const emit = defineEmits<{
   logout: [];
   leaderboards: [];
   profile: [];
-  settings: [];
 }>();
 
 const modeButtonClass = (_mode: string) => {
@@ -164,7 +160,6 @@ const handleSignup = () => emit('signup');
 const handleLogout = () => emit('logout');
 const handleLeaderboards = () => emit('leaderboards');
 const handleProfile = () => emit('profile');
-const handleSettings = () => emit('settings');
 </script>
 
 <style scoped>

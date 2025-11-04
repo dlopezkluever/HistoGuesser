@@ -2,6 +2,7 @@ import { createStore } from 'zustand/vanilla'
 import type { User, AuthState } from '@/types/user'
 import * as authService from '@/lib/supabase/auth'
 import { supabase } from '@/lib/supabase/client'
+import { uiStore } from './uiStore'
 
 interface AuthStore extends AuthState {
   initialize: () => Promise<void>
@@ -27,9 +28,15 @@ const store = createStore<AuthStore>((set) => ({
       const session = await authService.getSession()
 
       if (session) {
-        // Get user profile
-        const user = await authService.getCurrentUser()
-        set({ user, session, loading: false })
+        // Ensure user consistency (profile + stats)
+        try {
+          const user = await authService.ensureUserConsistency(session.user)
+          set({ user, session, loading: false })
+        } catch (error) {
+          console.error('Error ensuring user consistency on init:', error)
+          uiStore.getState().showToast('error', 'Failed to load user profile')
+          set({ error: 'Failed to load user profile', loading: false })
+        }
       } else {
         set({ user: null, session: null, loading: false })
       }
@@ -37,10 +44,18 @@ const store = createStore<AuthStore>((set) => ({
       // Listen for auth changes
       supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
-          const user = await authService.getCurrentUser()
-          set({ user, session })
+          try {
+            const user = await authService.ensureUserConsistency(session.user)
+            set({ user, session })
+            uiStore.getState().showToast('success', 'Successfully signed in!')
+          } catch (error) {
+            console.error('Error ensuring user consistency on sign in:', error)
+            uiStore.getState().showToast('error', 'Failed to load user profile')
+            set({ error: 'Failed to load user profile', user: null, session: null })
+          }
         } else if (event === 'SIGNED_OUT') {
           set({ user: null, session: null })
+          uiStore.getState().showToast('success', 'Successfully signed out!')
         }
       })
     } catch (error) {
@@ -54,8 +69,13 @@ const store = createStore<AuthStore>((set) => ({
     try {
       set({ loading: true, error: null })
       const { session } = await authService.signIn(email, password)
-      const user = await authService.getCurrentUser()
-      set({ user, session, loading: false })
+      if (session?.user) {
+        const user = await authService.ensureUserConsistency(session.user)
+        set({ user, session, loading: false })
+        uiStore.getState().showToast('success', 'Successfully signed in!')
+      } else {
+        throw new Error('Sign in failed - no session returned')
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign in failed'
       set({ error: message, loading: false })
@@ -67,8 +87,13 @@ const store = createStore<AuthStore>((set) => ({
     try {
       set({ loading: true, error: null })
       const { session } = await authService.signUp(email, password, username)
-      const user = await authService.getCurrentUser()
-      set({ user, session, loading: false })
+      if (session?.user) {
+        const user = await authService.ensureUserConsistency(session.user)
+        set({ user, session, loading: false })
+        uiStore.getState().showToast('success', 'Account created successfully!')
+      } else {
+        throw new Error('Sign up failed - no session returned')
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sign up failed'
       set({ error: message, loading: false })

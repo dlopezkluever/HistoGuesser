@@ -33,10 +33,6 @@ const handleLogout = async () => {
 }
 const handleLeaderboards = () => router.push({ name: 'leaderboard' })
 const handleProfile = () => router.push({ name: 'profile' })
-const handleSettings = () => {
-  // TODO: Create settings modal in Phase 2
-  // Placeholder for settings functionality
-}
 </script>
 
 <template>
@@ -49,7 +45,6 @@ const handleSettings = () => {
     @logout="handleLogout"
     @leaderboards="handleLeaderboards"
     @profile="handleProfile"
-    @settings="handleSettings"
   />
 </template>
 
