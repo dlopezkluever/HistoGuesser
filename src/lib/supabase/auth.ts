@@ -5,29 +5,79 @@ import type { User } from '@/types/user'
  * Sign up a new user
  */
 export async function signUp(email: string, password: string, username: string) {
+  // Validate inputs before sending to Supabase
+  if (!email || !email.includes('@')) {
+    throw new Error('Please enter a valid email address')
+  }
+  
+  if (!password || password.length < 6) {
+    throw new Error('Password must be at least 6 characters long')
+  }
+  
+  if (!username || username.length < 3) {
+    throw new Error('Username must be at least 3 characters long')
+  }
+
+  // Sign up with Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        username, // Store username in metadata
+      },
+    },
   })
 
-  if (authError) throw authError
-  if (!authData.user) throw new Error('User creation failed')
+  if (authError) {
+    // Extract user-friendly error message
+    let errorMessage = authError.message || 'Sign up failed'
+    
+    // Handle specific Supabase errors
+    if (authError.message.includes('already registered') || authError.message.includes('User already registered')) {
+      errorMessage = 'This email is already registered. Please sign in instead.'
+    } else if (authError.message.includes('password') || authError.message.includes('422')) {
+      errorMessage = 'Password must be at least 6 characters long and meet security requirements.'
+    } else if (authError.message.includes('email')) {
+      errorMessage = 'Please enter a valid email address.'
+    }
+    
+    throw new Error(errorMessage)
+  }
+  
+  if (!authData.user) {
+    throw new Error('User creation failed. Please try again.')
+  }
 
-  // Create user profile
+  // Create user profile in database
   const { error: profileError } = await supabase.from('users').insert({
     id: authData.user.id,
     email,
     username,
   })
 
-  if (profileError) throw profileError
+  if (profileError) {
+    // If profile creation fails, try to clean up auth user
+    console.error('Profile creation failed:', profileError)
+    
+    // Check if it's a duplicate username
+    if (profileError.code === '23505' || profileError.message.includes('unique')) {
+      throw new Error('This username is already taken. Please choose another.')
+    }
+    
+    throw new Error('Failed to create user profile. Please try again.')
+  }
 
   // Initialize player stats
   const { error: statsError } = await supabase.from('player_stats').insert({
     user_id: authData.user.id,
   })
 
-  if (statsError) throw statsError
+  if (statsError) {
+    console.error('Stats initialization failed:', statsError)
+    // Don't fail signup if stats fail - user can still log in
+    // Stats will be created on first game play
+  }
 
   return authData
 }
