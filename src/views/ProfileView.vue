@@ -125,8 +125,8 @@ onMounted(() => {
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
         <button
-          @click="goBack"
           class="flex items-center gap-2 text-noir-text hover:text-noir-gold transition-colors"
+          @click="goBack"
         >
           ← Back to Menu
         </button>
@@ -149,8 +149,8 @@ onMounted(() => {
             <div v-if="!editingUsername" class="flex items-center justify-center gap-3">
               <h2 class="font-heading text-2xl text-noir-text">@{{ displayUsername }}</h2>
               <button
-                @click="startEditingUsername"
                 class="text-noir-gold hover:text-noir-gold/80 text-sm underline"
+                @click="startEditingUsername"
               >
                 Edit
               </button>
@@ -174,16 +174,16 @@ onMounted(() => {
               </div>
               <div class="flex gap-2 justify-center">
                 <button
-                  @click="saveUsername"
                   :disabled="savingUsername || !newUsername.trim()"
                   class="btn btn-primary"
+                  @click="saveUsername"
                 >
                   {{ savingUsername ? 'Saving...' : 'Save' }}
                 </button>
                 <button
-                  @click="cancelEditingUsername"
                   :disabled="savingUsername"
                   class="btn btn-secondary"
+                  @click="cancelEditingUsername"
                 >
                   Cancel
                 </button>

@@ -98,7 +98,7 @@ export async function updateStatsAfterGame(
   let currentStats: PlayerStats
   try {
     currentStats = await getPlayerStats(userId)
-  } catch (error) {
+  } catch {
     // Stats don't exist, create them
     const { data: newStats, error: createError } = await supabase
       .from('player_stats')

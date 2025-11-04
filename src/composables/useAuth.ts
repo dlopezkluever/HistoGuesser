@@ -2,7 +2,6 @@ import { computed } from 'vue'
 import { useStore } from './useStore'
 import { authStore } from '@/stores/authStore'
 import * as authService from '@/lib/supabase/auth'
-import type { User } from '@/types/user'
 
 /**
  * Vue composable for authentication

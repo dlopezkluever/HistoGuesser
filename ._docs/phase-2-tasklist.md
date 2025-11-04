@@ -1,36 +1,5 @@
 ## **Phase 2: MVP \- User Authentication & Daily Challenge**
 
-### **Authentication System**
-
-* \[ \] Implement Supabase Auth integration
-
-  * \[ \] Create `useAuth.ts` composable  
-  * \[ \] Build login function with email/password  
-  * \[ \] Build signup function with validation  
-  * \[ \] Implement logout function  
-  * \[ \] Add session persistence and refresh logic  
-* \[ \] Create auth UI components
-
-  * \[ \] Build login modal with form  
-  * \[ \] Build signup modal with form  
-  * \[ \] Add validation and error messaging  
-  * \[ \] Implement loading states  
-  * \[ \] Style with noir theme  
-* \[ \] Set up auth state management
-
-  * \[ \] Create `useAuthStore.ts` in Zustand  
-  * \[ \] Store current user and session  
-  * \[ \] Handle auth state changes (login/logout)  
-  * \[ \] Sync user data from Supabase  
-  * \[ \] Add helper functions for auth checks  
-* \[ \] Implement profile display
-
-  * \[ \] Show username in main menu  
-  * \[ \] Add avatar display (optional)  
-  * \[ \] Create profile icon/button  
-  * \[ \] Link to logout functionality  
-  * \[ \] Update UI based on auth state
-
 ### **Daily Challenge Tables & Logic**
 
 * \[ \] Create `daily_scores` table

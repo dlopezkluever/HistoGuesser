@@ -1,5 +1,6 @@
 import { supabase } from './client'
 import type { User } from '@/types/user'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 /**
  * Sign up a new user
@@ -116,14 +117,14 @@ export async function getSession() {
  * Sync user profile between auth.users and users table
  * Creates profile record if it doesn't exist and handles edge cases
  */
-export async function syncUserProfile(authUser: any): Promise<User> {
+export async function syncUserProfile(authUser: SupabaseUser): Promise<User> {
   if (!authUser?.id) {
     throw new Error('No auth user provided')
   }
 
   try {
     // Check if user profile exists
-    const { data: existingProfile, error: fetchError } = await supabase
+    const { data: existingProfile } = await supabase
       .from('users')
       .select('*')
       .eq('id', authUser.id)
@@ -194,7 +195,7 @@ export async function syncUserProfile(authUser: any): Promise<User> {
  * Ensure user data consistency across auth and profile tables
  * Call this after auth state changes to guarantee sync
  */
-export async function ensureUserConsistency(authUser: any): Promise<User> {
+export async function ensureUserConsistency(authUser: SupabaseUser): Promise<User> {
   if (!authUser?.id) {
     throw new Error('No auth user provided for consistency check')
   }
