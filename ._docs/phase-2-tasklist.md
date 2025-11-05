@@ -31,6 +31,8 @@
   * \[ \] Display streak counter in UI  
   * \[ \] Add streak fire emoji indicator
 
+*Note, we want the daily challange to reset at 12am Eastern Time (New York)*
+
 ### **Leaderboard System**
 
 * \[ \] Create leaderboard query service

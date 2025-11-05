@@ -31,3 +31,7 @@ dist-ssr
 # Supabase
 .supabase
 
+#My additions files
+._docs/bugs & console logs
+
+._docs/junk/

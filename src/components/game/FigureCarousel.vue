@@ -78,7 +78,7 @@ const loading = ref(true);
 const imageError = ref(false);
 
 const currentImage = computed(() => {
-  return props.images[currentIndex.value] || null;
+  return props.images?.[currentIndex.value] || null;
 });
 
 const dotClass = (index: number) => {
@@ -91,7 +91,7 @@ const dotClass = (index: number) => {
 };
 
 const selectImage = (index: number) => {
-  if (index >= 0 && index < props.images.length) {
+  if (index >= 0 && index < (props.images?.length || 0)) {
     currentIndex.value = index;
     loading.value = true;
     imageError.value = false;
@@ -99,7 +99,7 @@ const selectImage = (index: number) => {
 };
 
 const nextImage = () => {
-  if (currentIndex.value < props.images.length - 1) {
+  if (currentIndex.value < (props.images?.length || 0) - 1) {
     selectImage(currentIndex.value + 1);
   }
 };

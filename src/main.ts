@@ -10,3 +10,8 @@ app.use(router)
 
 app.mount('#app')
 
+// Load test utilities in development
+if (import.meta.env.DEV) {
+  import('./lib/supabase/test-connection')
+}
+

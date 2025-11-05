@@ -132,17 +132,24 @@
 
       <!-- Guest signup prompt -->
       <div v-if="showSignupPrompt" class="signup-prompt">
+        <div class="signup-header">
+          <div class="signup-icon">🎭</div>
+          <h3 class="signup-title">Join the Investigation</h3>
+        </div>
         <p class="signup-text">
-          Want to save your score and compete on the leaderboard?
+          Create a free account to save your scores, compete on daily leaderboards, and unlock multiplayer games with friends.
         </p>
         <Button
           variant="primary"
-          size="md"
+          size="lg"
           full-width
           @click="handleSignup"
         >
           Sign Up Free
         </Button>
+        <p class="signup-disclaimer">
+          No email verification required • Quick & secure
+        </p>
       </div>
     </Card>
   </div>
@@ -299,11 +306,27 @@ const handleSignup = () => emit('signup');
 }
 
 .signup-prompt {
-  @apply mt-6 pt-6 border-t border-noir-gold/10 text-center space-y-3;
+  @apply mt-6 pt-6 border-t border-noir-gold/20 text-center space-y-4 bg-noir-surface/50 p-6 rounded-lg;
+}
+
+.signup-header {
+  @apply flex items-center justify-center gap-3 mb-2;
+}
+
+.signup-icon {
+  @apply text-2xl;
+}
+
+.signup-title {
+  @apply text-xl font-playfair text-noir-gold;
 }
 
 .signup-text {
-  @apply text-noir-text/80;
+  @apply text-noir-text/90 text-sm leading-relaxed max-w-sm mx-auto;
+}
+
+.signup-disclaimer {
+  @apply text-noir-text/50 text-xs mt-3;
 }
 
 @keyframes fade-in {

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { gameStore } from '@/stores/gameStore'
 import { uiStore } from '@/stores/uiStore'
 import { useStore } from '@/composables/useStore'
+import { useAuth } from '@/composables/useAuth'
 import { getRandomFigures } from '@/lib/supabase/queries'
 import { GameplayView, ResultsScreen } from '@/components/game'
 import { Card, Button } from '@/components/ui'
@@ -13,6 +14,7 @@ import type { RoundScore } from '@/types/score'
 const router = useRouter()
 const game = useStore(gameStore)
 const ui = useStore(uiStore)
+const { isAuthenticated } = useAuth()
 
 const gameplayRef = ref<InstanceType<typeof GameplayView> | null>(null)
 const showResults = ref(false)
@@ -107,6 +109,12 @@ const handleBackToMenu = () => {
   router.push({ name: 'home' })
 }
 
+// Handle signup from results screen
+const handleSignup = () => {
+  // Navigate to home which will show the login modal
+  router.push({ name: 'home', query: { signup: 'true' } })
+}
+
 // Initialize game
 const initGame = async () => {
   try {
@@ -197,9 +205,10 @@ onMounted(() => {
       :total-rounds="10"
       :show-play-again="true"
       :show-leaderboard="false"
-      :show-signup-prompt="false"
+      :show-signup-prompt="!isAuthenticated"
       @play-again="handlePlayAgain"
       @back-to-menu="handleBackToMenu"
+      @signup="handleSignup"
     />
   </div>
 </template>

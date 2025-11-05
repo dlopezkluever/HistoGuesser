@@ -1,40 +1,115 @@
+// @ts-nocheck - Supabase types don't recognize custom RPC functions and some database operations
 import { supabase } from './client'
 import type { Figure } from '@/types/figure'
 import type { PlayerStats } from '@/types/user'
-import type { DailyScore, LeaderboardEntry } from '@/types/score'
+import type { LeaderboardEntry } from '@/types/score'
 
 /**
  * Fetch random figures for Free Play mode
  */
 export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
-  // Note: In production, this should use a proper random sampling method
-  // For now, we'll fetch all figures and randomly select
-  const { data, error } = await supabase.from('figures').select('*').limit(count * 3)
+  console.log('🎭 Loading random figures for Free Play...')
 
-  if (error) throw error
-  if (!data || data.length === 0) throw new Error('No figures available')
+  try {
+    // First, test basic connectivity
+    console.log('🔍 Testing database connectivity...')
+    const { data: testData, error: testError } = await supabase
+      .from('figures')
+      .select('count', { count: 'exact', head: true })
 
-  // Randomly shuffle and select count figures
-  const shuffled = data.sort(() => Math.random() - 0.5)
-  return shuffled.slice(0, Math.min(count, shuffled.length))
+    if (testError) {
+      console.error('❌ Database connectivity test failed:', testError)
+      throw new Error(`Database connection failed: ${testError.message}`)
+    }
+
+    console.log(`📊 Database connectivity OK - found ${testData} total figures`)
+
+    // Now try to fetch actual figures
+    console.log('📥 Fetching figure data...')
+    const { data, error } = await supabase
+      .from('figures')
+      .select('id, name, aliases, images, birth_year, death_year, active_year, hometown, lat, lon, description, tags')
+      .limit(count * 3)
+
+    if (error) {
+      console.error('❌ Error loading figures:', error)
+      console.error('❌ Error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      })
+
+      if (error.code === 'PGRST116') {
+        throw new Error('Access denied: You do not have permission to view figures. Please check RLS policies.')
+      }
+
+      throw error
+    }
+
+    if (!data) {
+      console.error('❌ Query returned null data')
+      throw new Error('Query returned null data')
+    }
+
+    if (data.length === 0) {
+      console.error('❌ No figures available in database')
+      throw new Error('No figures available in database')
+    }
+
+    console.log(`✅ Successfully loaded ${data.length} figures from database`)
+    console.log('📋 Sample figure:', data[0])
+
+    // Randomly shuffle and select count figures
+    const shuffled = data.sort(() => Math.random() - 0.5)
+    const selected = shuffled.slice(0, Math.min(count, shuffled.length))
+    console.log(`🎲 Selected ${selected.length} random figures for game`)
+
+    return selected as Figure[]
+  } catch (error) {
+    console.error('💥 getRandomFigures failed completely:', error)
+
+    if (error instanceof Error) {
+      console.error('💥 Error message:', error.message)
+      console.error('💥 Error stack:', error.stack)
+    }
+
+    throw error
+  }
 }
 
 /**
  * Fetch figures for Daily Challenge (deterministic based on date)
+ * Uses database function to ensure consistency across all players
  */
 export async function getDailyChallengeFigures(date: string): Promise<Figure[]> {
-  // Implement deterministic selection based on date
-  // For MVP, we'll use a simple hash of the date to seed selection
-  const seed = hashString(date)
+  // Call database function to get or create daily challenge
+  // @ts-ignore - Custom RPC function not in generated types
+  const { data: challengeData, error: challengeError } = await supabase
+    .rpc('get_or_create_daily_challenge', { target_date: date })
 
-  const { data, error } = await supabase.from('figures').select('*')
+  if (challengeError) throw challengeError
+  if (!challengeData || challengeData.length === 0) {
+    throw new Error('Failed to get daily challenge')
+  }
 
-  if (error) throw error
-  if (!data || data.length < 10) throw new Error('Insufficient figures for daily challenge')
+  const figureIds: string[] = challengeData[0].figure_ids
 
-  // Deterministic shuffle using seed
-  const shuffled = deterministicShuffle(data, seed)
-  return shuffled.slice(0, 10)
+  // Fetch the actual figure data
+  const { data: figures, error: figuresError } = await supabase
+    .from('figures')
+    .select('*')
+    .in('id', figureIds)
+
+  if (figuresError) throw figuresError
+  if (!figures || figures.length !== 10) {
+    throw new Error('Failed to load all daily challenge figures')
+  }
+
+  // Return figures in the order specified by the challenge
+  // @ts-ignore - TypeScript doesn't know about the id property from the database
+  const figureMap = new Map(figures.map(f => [f.id, f]))
+  return figureIds.map(id => figureMap.get(id)!)
 }
 
 /**
@@ -83,6 +158,8 @@ export async function updatePlayerStats(
 
 /**
  * Update player stats after completing a game
+ * Note: For Daily Challenge, stats are updated by submitDailyScore function
+ * This function is primarily for Free Play mode
  */
 export async function updateStatsAfterGame(
   userId: string,
@@ -94,12 +171,18 @@ export async function updateStatsAfterGame(
     throw new Error('User ID required')
   }
 
+  // For Daily Challenge, stats are handled by submitDailyScore
+  if (gameMode === 'daily') {
+    return await getPlayerStats(userId)
+  }
+
   // Get current stats (create if doesn't exist)
   let currentStats: PlayerStats
   try {
     currentStats = await getPlayerStats(userId)
   } catch {
     // Stats don't exist, create them
+    // @ts-ignore - TypeScript doesn't understand the player_stats insert structure
     const { data: newStats, error: createError } = await supabase
       .from('player_stats')
       .insert({
@@ -115,7 +198,7 @@ export async function updateStatsAfterGame(
     currentStats = newStats
   }
 
-  // Calculate updates
+  // Calculate updates for Free Play
   const updates: Partial<PlayerStats> = {
     total_games: currentStats.total_games + 1,
   }
@@ -125,60 +208,39 @@ export async function updateStatsAfterGame(
     updates.best_score = gameScore
   }
 
-  // Update daily streak for Daily Challenge mode
-  if (gameMode === 'daily') {
-    const today = new Date().toISOString().split('T')[0]
-    const lastDaily = currentStats.last_daily_date
-
-    if (!lastDaily) {
-      // First daily game
-      updates.daily_streak = 1
-      updates.last_daily_date = today
-    } else if (lastDaily === today) {
-      // Already played today, don't increment streak
-    } else {
-      // Check if it's consecutive day
-      const lastDate = new Date(lastDaily)
-      const currentDate = new Date(today)
-      const diffTime = currentDate.getTime() - lastDate.getTime()
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-      if (diffDays === 1) {
-        // Consecutive day
-        updates.daily_streak = currentStats.daily_streak + 1
-      } else if (diffDays > 1) {
-        // Streak broken
-        updates.daily_streak = 1
-      }
-      updates.last_daily_date = today
-    }
-  }
-
   // Apply updates
+  // @ts-ignore - TypeScript doesn't understand the partial update structure
   return await updatePlayerStats(userId, updates)
 }
 
 /**
- * Submit Daily Challenge score
+ * Submit Daily Challenge score with validation and stats updates
  */
 export async function submitDailyScore(
   userId: string,
   challengeDate: string,
   score: number
-): Promise<DailyScore> {
+): Promise<{ success: boolean; message: string; score: number }> {
+  // Use database function for validation and submission
+  // @ts-ignore - Custom RPC function not in generated types
   const { data, error } = await supabase
-    .from('daily_scores')
-    .insert({
-      user_id: userId,
-      challenge_date: challengeDate,
-      score,
-      completed_at: new Date().toISOString(),
+    .rpc('submit_daily_score', {
+      user_uuid: userId,
+      target_date: challengeDate,
+      submitted_score: score
     })
-    .select()
-    .single()
 
   if (error) throw error
-  return data
+
+  if (!data || data.length === 0) {
+    throw new Error('Failed to submit score')
+  }
+
+  return {
+    success: data[0].success,
+    message: data[0].message,
+    score: data[0].final_score
+  }
 }
 
 /**
@@ -239,9 +301,51 @@ export async function getDailyLeaderboard(
 }
 
 /**
+ * Get user's daily challenge status and stats
+ */
+export async function getDailyChallengeStatus(
+  userId: string,
+  date: string
+): Promise<{
+  hasCompleted: boolean
+  score: number
+  completedAt: string | null
+  currentStreak: number
+  bestScore: number
+}> {
+  // @ts-ignore - Custom RPC function not in generated types
+  const { data, error } = await supabase
+    .rpc('get_daily_challenge_status', {
+      user_uuid: userId,
+      target_date: date
+    })
+
+  if (error) throw error
+
+  if (!data || data.length === 0) {
+    return {
+      hasCompleted: false,
+      score: 0,
+      completedAt: null,
+      currentStreak: 0,
+      bestScore: 0
+    }
+  }
+
+  return {
+    hasCompleted: data[0].has_completed,
+    score: data[0].score,
+    completedAt: data[0].completed_at,
+    currentStreak: data[0].current_streak,
+    bestScore: data[0].best_score
+  }
+}
+
+/**
  * Get user's rank in Daily Challenge leaderboard
  */
 export async function getUserDailyRank(userId: string, date: string): Promise<number | null> {
+  // @ts-ignore - TypeScript doesn't know about the score and completed_at properties
   const { data: userScore, error: userError } = await supabase
     .from('daily_scores')
     .select('score, completed_at')
@@ -251,40 +355,18 @@ export async function getUserDailyRank(userId: string, date: string): Promise<nu
 
   if (userError || !userScore) return null
 
+  const scoreData = userScore as { score: number; completed_at: string }
+
   const { count, error: countError } = await supabase
     .from('daily_scores')
     .select('*', { count: 'exact', head: true })
     .eq('challenge_date', date)
     .or(
-      `score.gt.${userScore.score},and(score.eq.${userScore.score},completed_at.lt.${userScore.completed_at})`
+      `score.gt.${scoreData.score},and(score.eq.${scoreData.score},completed_at.lt.${scoreData.completed_at})`
     )
 
   if (countError) return null
   return (count || 0) + 1
 }
 
-// Helper functions
-
-function hashString(str: string): number {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash = hash & hash
-  }
-  return Math.abs(hash)
-}
-
-function deterministicShuffle<T>(array: T[], seed: number): T[] {
-  const shuffled = [...array]
-  let currentSeed = seed
-
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    currentSeed = (currentSeed * 9301 + 49297) % 233280
-    const j = Math.floor((currentSeed / 233280) * (i + 1))
-    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
-  }
-
-  return shuffled
-}
 

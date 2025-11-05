@@ -1,13 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { authStore } from '@/stores/authStore'
 import { uiStore } from '@/stores/uiStore'
 import { Card } from '@/components/ui'
 
 const router = useRouter()
+const route = useRoute()
 
 const isSignUp = ref(false)
+
+// Check for signup mode from query parameter
+onMounted(() => {
+  if (route.query.mode === 'signup') {
+    isSignUp.value = true
+  }
+})
 const email = ref('')
 const password = ref('')
 const username = ref('')
@@ -68,8 +76,8 @@ const handleSubmit = async () => {
 
     if (isSignUp.value) {
       await authStore.getState().signUp(email.value, password.value, username.value)
-      uiStore.getState().showToast('success', 'Account created successfully!')
-      router.push({ name: 'home' })
+      uiStore.getState().showToast('success', 'Welcome to HistoGuesser! 🎉')
+      router.push({ name: 'home', query: { welcome: 'true' } })
     } else {
       await authStore.getState().signIn(email.value, password.value)
       uiStore.getState().showToast('success', 'Logged in successfully!')
