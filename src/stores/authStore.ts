@@ -23,18 +23,14 @@ const store = createStore<AuthStore>((set) => ({
   initialize: async () => {
     try {
       set({ loading: true, error: null })
-      console.log('🔐 Auth store initializing...')
 
       // Get current session
       const session = await authService.getSession()
-      console.log('📋 Current session:', session ? 'Found' : 'None')
 
       if (session) {
         // Ensure user consistency (profile + stats)
         try {
-          console.log('👤 Ensuring user consistency...')
           const user = await authService.ensureUserConsistency(session.user)
-          console.log('✅ User consistency ensured:', user.username)
           set({ user, session, loading: false })
         } catch (error) {
           console.error('❌ Error ensuring user consistency on init:', error)

@@ -104,7 +104,7 @@ const goToToday = () => {
 }
 
 const goBack = () => {
-  router.go(-1) || router.push('/')
+  router.go(-1)
 }
 
 // Watch for date changes

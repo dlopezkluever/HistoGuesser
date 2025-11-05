@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase types don't recognize custom RPC functions and some database operations
 import { supabase } from './client'
 import type { Figure } from '@/types/figure'
 import type { PlayerStats } from '@/types/user'
@@ -8,12 +7,9 @@ import type { LeaderboardEntry } from '@/types/score'
  * Fetch random figures for Free Play mode
  */
 export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
-  console.log('🎭 Loading random figures for Free Play...')
-
   try {
     // First, test basic connectivity
-    console.log('🔍 Testing database connectivity...')
-    const { data: testData, error: testError } = await supabase
+    const { error: testError } = await supabase
       .from('figures')
       .select('count', { count: 'exact', head: true })
 
@@ -22,13 +18,10 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
       throw new Error(`Database connection failed: ${testError.message}`)
     }
 
-    console.log(`📊 Database connectivity OK - found ${testData} total figures`)
-
     // Now try to fetch actual figures
-    console.log('📥 Fetching figure data...')
     const { data, error } = await supabase
       .from('figures')
-      .select('id, name, aliases, images, birth_year, death_year, active_year, hometown, lat, lon, description, tags')
+      .select('id, name, images, birth_year, lat, lon, description')
       .limit(count * 3)
 
     if (error) {
@@ -57,13 +50,9 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
       throw new Error('No figures available in database')
     }
 
-    console.log(`✅ Successfully loaded ${data.length} figures from database`)
-    console.log('📋 Sample figure:', data[0])
-
     // Randomly shuffle and select count figures
     const shuffled = data.sort(() => Math.random() - 0.5)
     const selected = shuffled.slice(0, Math.min(count, shuffled.length))
-    console.log(`🎲 Selected ${selected.length} random figures for game`)
 
     return selected as Figure[]
   } catch (error) {
@@ -84,7 +73,7 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
  */
 export async function getDailyChallengeFigures(date: string): Promise<Figure[]> {
   // Call database function to get or create daily challenge
-  // @ts-ignore - Custom RPC function not in generated types
+  // @ts-expect-error - Custom RPC function not in generated types
   const { data: challengeData, error: challengeError } = await supabase
     .rpc('get_or_create_daily_challenge', { target_date: date })
 
@@ -107,7 +96,7 @@ export async function getDailyChallengeFigures(date: string): Promise<Figure[]> 
   }
 
   // Return figures in the order specified by the challenge
-  // @ts-ignore - TypeScript doesn't know about the id property from the database
+  // @ts-expect-error - TypeScript doesn't know about the id property from the database
   const figureMap = new Map(figures.map(f => [f.id, f]))
   return figureIds.map(id => figureMap.get(id)!)
 }
@@ -182,7 +171,7 @@ export async function updateStatsAfterGame(
     currentStats = await getPlayerStats(userId)
   } catch {
     // Stats don't exist, create them
-    // @ts-ignore - TypeScript doesn't understand the player_stats insert structure
+    // @ts-expect-error - TypeScript doesn't understand the player_stats insert structure
     const { data: newStats, error: createError } = await supabase
       .from('player_stats')
       .insert({
@@ -209,7 +198,7 @@ export async function updateStatsAfterGame(
   }
 
   // Apply updates
-  // @ts-ignore - TypeScript doesn't understand the partial update structure
+  // @ts-expect-error - TypeScript doesn't understand the partial update structure
   return await updatePlayerStats(userId, updates)
 }
 
@@ -222,7 +211,7 @@ export async function submitDailyScore(
   score: number
 ): Promise<{ success: boolean; message: string; score: number }> {
   // Use database function for validation and submission
-  // @ts-ignore - Custom RPC function not in generated types
+  // @ts-expect-error - Custom RPC function not in generated types
   const { data, error } = await supabase
     .rpc('submit_daily_score', {
       user_uuid: userId,
@@ -313,7 +302,7 @@ export async function getDailyChallengeStatus(
   currentStreak: number
   bestScore: number
 }> {
-  // @ts-ignore - Custom RPC function not in generated types
+  // @ts-expect-error - Custom RPC function not in generated types
   const { data, error } = await supabase
     .rpc('get_daily_challenge_status', {
       user_uuid: userId,
@@ -345,7 +334,7 @@ export async function getDailyChallengeStatus(
  * Get user's rank in Daily Challenge leaderboard
  */
 export async function getUserDailyRank(userId: string, date: string): Promise<number | null> {
-  // @ts-ignore - TypeScript doesn't know about the score and completed_at properties
+  // @ts-expect-error - TypeScript doesn't know about the score and completed_at properties
   const { data: userScore, error: userError } = await supabase
     .from('daily_scores')
     .select('score, completed_at')

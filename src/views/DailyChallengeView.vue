@@ -9,7 +9,6 @@ import { useAuth } from '@/composables/useAuth'
 import { getDailyChallengeFigures, getDailyChallengeStatus, submitDailyScore } from '@/lib/supabase/queries'
 import { calculateRoundScore } from '@/lib/scoring/calculateScore'
 import type { Figure } from '@/types/figure'
-import type { GameSession, GameResult } from '@/types/game'
 
 const router = useRouter()
 const { currentUser } = useAuth()
@@ -166,11 +165,6 @@ const goToMenu = () => {
   router.push('/')
 }
 
-const playAgain = () => {
-  // For daily challenge, can only play once per day
-  // Redirect to menu or show message
-  goToMenu()
-}
 
 // Initialize
 onMounted(() => {
