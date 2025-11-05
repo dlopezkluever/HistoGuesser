@@ -6,7 +6,7 @@ import { supabase } from './client'
 export async function testConnection() {
   try {
     // Test 1: Basic connectivity
-    const { data: countData, error: countError } = await supabase
+    const { error: countError } = await supabase
       .from('figures')
       .select('count', { count: 'exact', head: true })
 
@@ -16,7 +16,7 @@ export async function testConnection() {
     }
 
     // Test 2: Anonymous read access to figures
-    const { data: figuresData, error: figuresError } = await supabase
+    const { error: figuresError } = await supabase
       .from('figures')
       .select('id, name, birth_year')
       .limit(1)
@@ -33,7 +33,7 @@ export async function testConnection() {
     }
 
     // Test 3: Check current auth status
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+    const { error: sessionError } = await supabase.auth.getSession()
 
     if (sessionError) {
       console.error('❌ Auth session check failed:', sessionError)

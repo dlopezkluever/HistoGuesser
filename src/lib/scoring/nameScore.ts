@@ -18,7 +18,7 @@ import type { NameMatchResult } from '@/types/score'
 export function calculateNameScore(
   guessedName: string,
   correctName: string,
-  aliases: string[]
+  aliases: string[] = []
 ): number {
   // Handle empty guess
   if (!guessedName || guessedName.trim() === '') {
@@ -101,7 +101,7 @@ function normalizeString(str: string): string {
 export function getNameMatchResult(
   guessedName: string,
   correctName: string,
-  aliases: string[]
+  aliases: string[] = []
 ): NameMatchResult {
   const score = calculateNameScore(guessedName, correctName, aliases)
 

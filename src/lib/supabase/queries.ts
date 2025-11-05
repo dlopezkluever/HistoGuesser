@@ -21,7 +21,7 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
     // Now try to fetch actual figures
     const { data, error } = await supabase
       .from('figures')
-      .select('id, name, images, birth_year, lat, lon, description')
+      .select('id, name, aliases, images, birth_year, lat, lon, description')
       .limit(count * 3)
 
     if (error) {
@@ -73,15 +73,17 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
  */
 export async function getDailyChallengeFigures(date: string): Promise<Figure[]> {
   // Call database function to get or create daily challenge
-  // @ts-expect-error - Custom RPC function not in generated types
   const { data: challengeData, error: challengeError } = await supabase
+    // @ts-expect-error - Custom RPC function not in generated types
     .rpc('get_or_create_daily_challenge', { target_date: date })
 
   if (challengeError) throw challengeError
+  // @ts-expect-error - RPC function return type not recognized by generated types
   if (!challengeData || challengeData.length === 0) {
     throw new Error('Failed to get daily challenge')
   }
 
+  // @ts-expect-error - RPC function return type not recognized by generated types
   const figureIds: string[] = challengeData[0].figure_ids
 
   // Fetch the actual figure data
@@ -136,6 +138,7 @@ export async function updatePlayerStats(
 ): Promise<PlayerStats> {
   const { data, error } = await supabase
     .from('player_stats')
+    // @ts-expect-error - TypeScript doesn't recognize the player_stats update structure
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('user_id', userId)
     .select()
@@ -171,9 +174,9 @@ export async function updateStatsAfterGame(
     currentStats = await getPlayerStats(userId)
   } catch {
     // Stats don't exist, create them
-    // @ts-expect-error - TypeScript doesn't understand the player_stats insert structure
     const { data: newStats, error: createError } = await supabase
       .from('player_stats')
+      // @ts-expect-error - TypeScript doesn't understand the player_stats insert structure
       .insert({
         user_id: userId,
         total_games: 0,
@@ -198,7 +201,6 @@ export async function updateStatsAfterGame(
   }
 
   // Apply updates
-  // @ts-expect-error - TypeScript doesn't understand the partial update structure
   return await updatePlayerStats(userId, updates)
 }
 
@@ -211,8 +213,8 @@ export async function submitDailyScore(
   score: number
 ): Promise<{ success: boolean; message: string; score: number }> {
   // Use database function for validation and submission
-  // @ts-expect-error - Custom RPC function not in generated types
   const { data, error } = await supabase
+    // @ts-expect-error - Custom RPC function not in generated types
     .rpc('submit_daily_score', {
       user_uuid: userId,
       target_date: challengeDate,
@@ -221,10 +223,12 @@ export async function submitDailyScore(
 
   if (error) throw error
 
+  // @ts-expect-error - RPC function return type not recognized by generated types
   if (!data || data.length === 0) {
     throw new Error('Failed to submit score')
   }
 
+  // @ts-expect-error - RPC function return type not recognized by generated types
   return {
     success: data[0].success,
     message: data[0].message,
@@ -302,8 +306,8 @@ export async function getDailyChallengeStatus(
   currentStreak: number
   bestScore: number
 }> {
-  // @ts-expect-error - Custom RPC function not in generated types
   const { data, error } = await supabase
+    // @ts-expect-error - Custom RPC function not in generated types
     .rpc('get_daily_challenge_status', {
       user_uuid: userId,
       target_date: date
@@ -311,6 +315,7 @@ export async function getDailyChallengeStatus(
 
   if (error) throw error
 
+  // @ts-expect-error - RPC function return type not recognized by generated types
   if (!data || data.length === 0) {
     return {
       hasCompleted: false,
@@ -321,6 +326,7 @@ export async function getDailyChallengeStatus(
     }
   }
 
+  // @ts-expect-error - RPC function return type not recognized by generated types
   return {
     hasCompleted: data[0].has_completed,
     score: data[0].score,
@@ -334,7 +340,6 @@ export async function getDailyChallengeStatus(
  * Get user's rank in Daily Challenge leaderboard
  */
 export async function getUserDailyRank(userId: string, date: string): Promise<number | null> {
-  // @ts-expect-error - TypeScript doesn't know about the score and completed_at properties
   const { data: userScore, error: userError } = await supabase
     .from('daily_scores')
     .select('score, completed_at')

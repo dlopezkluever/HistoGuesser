@@ -62,6 +62,7 @@ watch(
 defineExpose({
   clearMap,
   resetView,
+  showCorrectLocation,
 });
 </script>
 

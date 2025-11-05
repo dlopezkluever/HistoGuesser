@@ -17,7 +17,7 @@ export function calculateRoundScore(
   correctLat: number,
   correctLon: number,
   correctYear: number,
-  aliases: string[],
+  aliases: string[] = [],
   submissionTime: number,
   mode: GameMode
 ): RoundScore {
