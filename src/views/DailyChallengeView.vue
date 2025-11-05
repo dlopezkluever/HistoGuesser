@@ -217,8 +217,8 @@ onMounted(() => {
             <Button
               v-if="canPlayChallenge"
               size="lg"
-              @click="startChallenge"
               class="w-full"
+              @click="startChallenge"
             >
               Start Challenge
             </Button>
@@ -230,12 +230,12 @@ onMounted(() => {
               <div class="text-sm text-noir-text/60">
                 Score: {{ challengeStatus.score.toLocaleString() }}
               </div>
-              <Button variant="secondary" @click="goToLeaderboard" class="w-full">
+              <Button variant="secondary" class="w-full" @click="goToLeaderboard">
                 View Leaderboard
               </Button>
             </div>
 
-            <Button variant="ghost" @click="goToMenu" class="w-full">
+            <Button variant="ghost" class="w-full" @click="goToMenu">
               Back to Menu
             </Button>
           </div>

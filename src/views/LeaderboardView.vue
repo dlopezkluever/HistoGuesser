@@ -145,8 +145,8 @@ onMounted(() => {
               v-if="selectedDate !== new Date().toISOString().split('T')[0]"
               variant="ghost"
               size="sm"
-              @click="goToToday"
               class="mt-1"
+              @click="goToToday"
             >
               Go to Today
             </Button>
@@ -207,7 +207,8 @@ onMounted(() => {
           >
             <!-- Rank and Medal -->
             <div class="flex items-center gap-3">
-              <div class="text-lg font-mono w-8 text-center" :class="{
+              <div
+class="text-lg font-mono w-8 text-center" :class="{
                 'text-noir-red': entry.rank === 1,
                 'text-noir-gold': entry.rank === 2,
                 'text-noir-gold/80': entry.rank === 3,
