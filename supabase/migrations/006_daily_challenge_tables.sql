@@ -158,9 +158,9 @@ DECLARE
   last_daily_date DATE;
 BEGIN
   -- Get the last daily challenge date for this user
-  SELECT MAX(challenge_date) INTO last_daily_date
-  FROM daily_scores
-  WHERE user_id = user_uuid;
+  SELECT MAX(ds.challenge_date) INTO last_daily_date
+  FROM daily_scores ds
+  WHERE ds.user_id = user_uuid;
 
   -- If no games played, streak is 0
   IF last_daily_date IS NULL THEN
@@ -178,8 +178,8 @@ BEGIN
 
     -- Check if user has a score for this date
     IF EXISTS (
-      SELECT 1 FROM daily_scores
-      WHERE user_id = user_uuid AND challenge_date = check_date
+      SELECT 1 FROM daily_scores ds
+      WHERE ds.user_id = user_uuid AND ds.challenge_date = check_date
     ) THEN
       streak_days := streak_days + 1;
     ELSE
