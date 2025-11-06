@@ -13,10 +13,12 @@ const roomCode = ref('')
 const joinError = ref('')
 
 const handleCreateLobby = async () => {
+  console.log('🏗️ LobbyCreateJoin.handleCreateLobby called!')
   try {
     await createNewLobby()
+    console.log('✅ createNewLobby completed successfully')
   } catch (error) {
-    console.error('Failed to create lobby:', error)
+    console.error('❌ Failed to create lobby:', error)
   }
 }
 

@@ -1,4 +1,4 @@
-import { ref, onUnmounted } from 'vue'
+import { ref, onUnmounted, computed } from 'vue'
 import { lobbyStore } from '@/stores/lobbyStore'
 import { authStore } from '@/stores/authStore'
 import {
@@ -25,7 +25,7 @@ export function useLobby() {
       lobbyStore.getState().setLoading(true)
       lobbyStore.getState().setError(null)
 
-      const lobby = await createLobby(authStore.getState().user!.id)
+      const lobby = await createLobby(authStore.getState().user!.id, authStore.getState().user!.username)
 
       // Get the lobby with players (just the host)
       const { lobby: lobbyWithPlayers, players } = await getLobbyWithPlayers(lobby.id)
@@ -45,7 +45,7 @@ export function useLobby() {
       lobbyStore.getState().setError(message)
       throw error
     } finally {
-      lobbyStore.setLoading(false)
+      lobbyStore.getState().setLoading(false)
     }
   }
 
@@ -78,7 +78,7 @@ export function useLobby() {
       lobbyStore.getState().setError(message)
       throw error
     } finally {
-      lobbyStore.setLoading(false)
+      lobbyStore.getState().setLoading(false)
     }
   }
 
@@ -112,7 +112,7 @@ export function useLobby() {
       lobbyStore.getState().setError(message)
       throw error
     } finally {
-      lobbyStore.setLoading(false)
+      lobbyStore.getState().setLoading(false)
     }
   }
 
@@ -236,7 +236,7 @@ export function useLobby() {
 
       onGameEnded: async (finalScores) => {
         // Game finished
-        lobbyStore.updateLobbyStatus('finished', 10)
+        lobbyStore.getState().updateLobbyStatus('finished', 10)
       }
     })
   }
@@ -246,7 +246,7 @@ export function useLobby() {
       unsubscribeLobby(realtimeChannel.value)
       realtimeChannel.value = null
     }
-    lobbyStore.reset()
+    lobbyStore.getState().reset()
   }
 
   // Auto-cleanup on component unmount
@@ -254,18 +254,30 @@ export function useLobby() {
     cleanup()
   })
 
+  // Create reactive computed properties for Vue reactivity
+  const lobby = computed(() => lobbyStore.getState().currentLobby)
+  const player = computed(() => lobbyStore.getState().currentPlayer)
+  const players = computed(() => lobbyStore.getState().players)
+  const figures = computed(() => lobbyStore.getState().figures)
+  const currentRound = computed(() => lobbyStore.getState().currentRound)
+  const currentFigure = computed(() => lobbyStore.getState().currentFigure)
+  const roundSubmissions = computed(() => lobbyStore.getState().roundSubmissions)
+  const isRoundActive = computed(() => lobbyStore.getState().isRoundActive)
+  const isLoading = computed(() => lobbyStore.getState().isLoading)
+  const error = computed(() => lobbyStore.getState().error)
+
   return {
-    // State
-    lobby: lobbyStore.getState().currentLobby,
-    player: lobbyStore.getState().currentPlayer,
-    players: lobbyStore.getState().players,
-    figures: lobbyStore.getState().figures,
-    currentRound: lobbyStore.getState().currentRound,
-    currentFigure: lobbyStore.getState().currentFigure,
-    roundSubmissions: lobbyStore.getState().roundSubmissions,
-    isRoundActive: lobbyStore.getState().isRoundActive,
-    isLoading: lobbyStore.getState().isLoading,
-    error: lobbyStore.getState().error,
+    // State (now reactive)
+    lobby,
+    player,
+    players,
+    figures,
+    currentRound,
+    currentFigure,
+    roundSubmissions,
+    isRoundActive,
+    isLoading,
+    error,
 
     // Actions
     createNewLobby,

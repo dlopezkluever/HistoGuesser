@@ -370,7 +370,7 @@ export async function getUserDailyRank(userId: string, date: string): Promise<nu
 /**
  * Create a new multiplayer lobby
  */
-export async function createLobby(hostId: string): Promise<Lobby> {
+export async function createLobby(hostId: string, hostUsername: string): Promise<Lobby> {
   // Generate random room code
   const { data: codeData, error: codeError } = await supabase
     .rpc('generate_room_code')
@@ -398,7 +398,20 @@ export async function createLobby(hostId: string): Promise<Lobby> {
     .single()
 
   if (error) throw error
-  return data as Lobby
+  const lobby = data as Lobby
+
+  // Add the host as the first player
+  const { error: playerError } = await supabaseUntyped
+    .from('lobby_players')
+    .insert({
+      lobby_id: lobby.id,
+      user_id: hostId,
+      username: hostUsername
+    })
+
+  if (playerError) throw playerError
+
+  return lobby
 }
 
 /**
