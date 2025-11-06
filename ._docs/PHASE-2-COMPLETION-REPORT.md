@@ -190,6 +190,90 @@ const { timeRemaining, isRunning, isExpired, progress, formattedTime, isUrgent }
 
 ---
 
+## Debugging Journey & Issue Resolution
+
+### Phase 2 Development Challenges
+
+Phase 2 implementation encountered several critical bugs that required systematic debugging and database function fixes. The journey from broken functionality to working MVP involved three major debugging cycles.
+
+#### Free Play Freeze Bug Resolution
+
+**Issue Identification:**
+- Game froze on second+ guesses with console errors: `mapRef.value.showCorrectLocation is not a function` and `aliases is not iterable`
+- Root cause: InteractiveMap component missing exposed methods and incomplete figure data queries
+
+**Technical Fixes Applied:**
+```typescript
+// InteractiveMap.vue - Added missing method exposure
+defineExpose({
+  clearMap,
+  resetView,
+  showCorrectLocation, // ← Added this
+});
+
+// queries.ts - Added missing aliases field
+select('id, name, aliases, images, birth_year, lat, lon, description')
+```
+
+**Impact:** Enabled multi-round Free Play gameplay with proper map reveal and name scoring functionality.
+
+#### Daily Challenge Database Function Errors
+
+**Issue Identification:**
+- 400 Bad Request errors with `column reference "challenge_date" is ambiguous`
+- PostgreSQL functions failing due to ambiguous column references across joined contexts
+
+**Database Function Fixes:**
+1. **`calculate_streak` function:** Added table aliases (`ds`, `ds2`) to distinguish column references
+2. **`get_daily_challenge_status` function:** Added table alias (`ds2`) for best_score query
+3. **`get_or_create_daily_challenge` function:** Added table alias (`dc`) and fixed MD5 hash conversion logic
+
+**Key SQL Fixes:**
+```sql
+-- Fixed ambiguous column reference
+SELECT MAX(ds.challenge_date) INTO last_daily_date
+FROM daily_scores ds
+WHERE ds.user_id = user_uuid;
+
+-- Fixed MD5 hash conversion (was causing "7" not valid binary digit error)
+('x' || substring(md5(target_date::text || '-' || id::text), 1, 16))::bit(64)::bigint
+```
+
+**Impact:** Enabled Daily Challenge loading, figure selection, and leaderboard data retrieval.
+
+#### Authentication & Environment Issues
+
+**Issue Identification:**
+- Supabase CLI failures due to BOM characters in `.env.local`
+- Browser cookie corruption preventing regular Chrome functionality
+
+**Resolution:**
+- Recreated `.env.local` without BOM characters
+- Documented incognito mode workaround for cookie corruption
+- Verified RLS policies allow anonymous figure access and authenticated user data
+
+### Debugging Methodology
+
+**Root Cause Analysis Approach:**
+1. **Error Log Analysis:** Systematically mapped console errors to specific functions/components
+2. **Database Function Testing:** Isolated and tested individual PostgreSQL functions
+3. **Incremental Fixes:** Applied targeted fixes rather than wholesale resets
+4. **Cross-Platform Testing:** Verified functionality across multiple user accounts
+
+**Key Lessons Learned:**
+- PostgreSQL ambiguous column errors require explicit table aliases in complex queries
+- MD5 hash conversion to integers needs proper hex-to-binary handling
+- Component method exposure is critical for parent-child communication
+- Environment file corruption can cause subtle deployment issues
+
+**Testing Verification:**
+- ✅ Free Play: Multi-round gameplay with map reveals and scoring
+- ✅ Daily Challenge: Deterministic figure selection per date
+- ✅ Leaderboard: Cross-user score display and ranking
+- ✅ Authentication: Login/signup with proper user consistency
+
+---
+
 ## Film Noir Theme Compliance
 
 ### ✅ Visual Design
