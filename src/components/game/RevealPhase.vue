@@ -13,7 +13,7 @@
       </div>
 
       <div class="reveal-content">
-        <p class="figure-hometown">📍 {{ figure.hometown }}</p>
+        <p class="figure-hometown">📍 {{ figure.hometown || 'Location unknown' }}</p>
         <p class="figure-description">{{ figure.description }}</p>
       </div>
 
@@ -73,6 +73,14 @@ const props = withDefaults(defineProps<Props>(), {
   isLastRound: false,
   autoAdvance: false,
   autoAdvanceDelay: 8,
+});
+
+// Debug logging
+console.log('RevealPhase figure data:', {
+  name: props.figure?.name,
+  hometown: props.figure?.hometown,
+  hasHometown: !!props.figure?.hometown,
+  hometownLength: props.figure?.hometown?.length
 });
 
 const emit = defineEmits<{

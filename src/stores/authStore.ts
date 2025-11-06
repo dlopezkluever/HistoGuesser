@@ -106,15 +106,13 @@ const store = createStore<AuthStore>((set) => ({
     try {
       console.log('📝 Attempting sign up for:', email, username)
       set({ loading: true, error: null })
-      const { session } = await authService.signUp(email, password, username)
-      console.log('📋 Sign up result - session:', session ? 'Exists' : 'None')
+      const authData = await authService.signUp(email, password, username)
+      console.log('📋 Sign up result - session:', authData.session ? 'Exists' : 'None')
 
-      if (session?.user) {
-        console.log('👤 Ensuring user consistency after sign up...')
-        const user = await authService.ensureUserConsistency(session.user)
-        console.log('✅ Sign up user consistency ensured:', user.username)
-        set({ user, session, loading: false })
-        uiStore.getState().showToast('success', 'Account created successfully!')
+      if (authData.session?.user) {
+        console.log('✅ Signup successful - auth state listener will handle user consistency')
+        set({ session: authData.session, loading: false })
+        // Note: User consistency is handled by onAuthStateChange listener
       } else {
         console.log('⚠️ Sign up succeeded but no immediate session (email confirmation may be required)')
         set({ loading: false })

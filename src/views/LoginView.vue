@@ -76,8 +76,17 @@ const handleSubmit = async () => {
 
     if (isSignUp.value) {
       await authStore.getState().signUp(email.value, password.value, username.value)
-      uiStore.getState().showToast('success', 'Welcome to HistoGuesser! 🎉')
-      router.push({ name: 'home', query: { welcome: 'true' } })
+
+      // Check if user is actually authenticated before navigating
+      const currentUser = authStore.getState().user
+      if (currentUser) {
+        uiStore.getState().showToast('success', 'Welcome to HistoGuesser! 🎉')
+        router.push({ name: 'home', query: { welcome: 'true' } })
+      } else {
+        // Account created but user not logged in - stay on signup page
+        errorMessage.value = 'Account created successfully! Please sign in with your credentials.'
+        isSignUp.value = false // Switch to login mode
+      }
     } else {
       await authStore.getState().signIn(email.value, password.value)
       uiStore.getState().showToast('success', 'Logged in successfully!')

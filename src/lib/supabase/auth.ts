@@ -50,35 +50,8 @@ export async function signUp(email: string, password: string, username: string) 
     throw new Error('User creation failed. Please try again.')
   }
 
-  // Create user profile in database
-  const { error: profileError } = await supabase.from('users').insert({
-    id: authData.user.id,
-    email,
-    username,
-  })
-
-  if (profileError) {
-    // If profile creation fails, try to clean up auth user
-    console.error('Profile creation failed:', profileError)
-    
-    // Check if it's a duplicate username
-    if (profileError.code === '23505' || profileError.message.includes('unique')) {
-      throw new Error('This username is already taken. Please choose another.')
-    }
-    
-    throw new Error('Failed to create user profile. Please try again.')
-  }
-
-  // Initialize player stats
-  const { error: statsError } = await supabase.from('player_stats').insert({
-    user_id: authData.user.id,
-  })
-
-  if (statsError) {
-    console.error('Stats initialization failed:', statsError)
-    // Don't fail signup if stats fail - user can still log in
-    // Stats will be created on first game play
-  }
+  // Note: User profile creation is handled by the auth state listener
+  // via ensureUserConsistency() to avoid race conditions
 
   return authData
 }

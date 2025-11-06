@@ -21,7 +21,7 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
     // Now try to fetch actual figures
     const { data, error } = await supabase
       .from('figures')
-      .select('id, name, aliases, images, birth_year, lat, lon, description')
+      .select('id, name, aliases, images, birth_year, death_year, active_year, hometown, lat, lon, description, tags')
       .limit(count * 3)
 
     if (error) {
@@ -89,7 +89,7 @@ export async function getDailyChallengeFigures(date: string): Promise<Figure[]> 
   // Fetch the actual figure data
   const { data: figures, error: figuresError } = await supabase
     .from('figures')
-    .select('*')
+    .select('id, name, aliases, images, birth_year, death_year, active_year, hometown, lat, lon, description, tags, created_at, updated_at')
     .in('id', figureIds)
 
   if (figuresError) throw figuresError
