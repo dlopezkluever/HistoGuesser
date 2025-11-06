@@ -90,7 +90,7 @@ const handleSubmit = async (guess: any, submissionTime: number) => {
   if (!currentFigure.value || !gameplayRef.value) return
 
   // Calculate score using the scoring library
-  const roundScore = calculateRoundScore(
+  const calculatedScore = calculateRoundScore(
     guess.name,
     guess.coordinates.lat,
     guess.coordinates.lon,
@@ -103,6 +103,17 @@ const handleSubmit = async (guess: any, submissionTime: number) => {
     submissionTime,
     'daily' // Game mode for speed bonus
   )
+
+  // Map to component-expected format
+  const roundScore = {
+    spatial: calculatedScore.spatial_score,
+    temporal: calculatedScore.temporal_score,
+    name: calculatedScore.name_score,
+    speed: calculatedScore.speed_bonus,
+    total: calculatedScore.total,
+    distanceKm: calculatedScore.distance_km,
+    yearDiff: calculatedScore.year_diff,
+  }
 
   scores.value.push({
     round: currentRoundNumber.value,
