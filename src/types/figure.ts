@@ -1,4 +1,12 @@
 /**
+ * Geographic coordinates
+ */
+export interface Coordinates {
+  lat: number
+  lon: number
+}
+
+/**
  * Figure image metadata
  */
 export interface FigureImage {

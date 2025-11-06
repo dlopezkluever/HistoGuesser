@@ -1,7 +1,7 @@
 import { createStore } from 'zustand/vanilla'
 import type { GameSession, RoundState, Guess, GameMode } from '@/types/game'
 import type { Figure } from '@/types/figure'
-import { calculateRoundScore } from '@/lib/scoring/calculateScore'
+import { calculateRoundScore } from '@/lib/scoring'
 import { updateStatsAfterGame } from '@/lib/supabase/queries'
 import { authStore } from './authStore'
 

@@ -6,7 +6,7 @@ import { authStore } from '@/stores/authStore'
  */
 export function authGuard(
   to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
   const auth = authStore.getState()
@@ -27,8 +27,8 @@ export function authGuard(
  * Guest guard - redirects to home if user is already authenticated
  */
 export function guestGuard(
-  to: RouteLocationNormalized,
-  from: RouteLocationNormalized,
+  _to: RouteLocationNormalized,
+  _from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
   const auth = authStore.getState()

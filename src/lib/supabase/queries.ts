@@ -1,7 +1,8 @@
-import { supabase } from './client'
+import { supabase, supabaseUntyped } from './client'
 import type { Figure } from '@/types/figure'
 import type { PlayerStats } from '@/types/user'
 import type { LeaderboardEntry } from '@/types/score'
+import type { Lobby, LobbyPlayer, LobbySubmission } from '@/types/lobby'
 
 /**
  * Fetch random figures for Free Play mode
@@ -74,7 +75,6 @@ export async function getRandomFigures(count: number = 10): Promise<Figure[]> {
 export async function getDailyChallengeFigures(date: string): Promise<Figure[]> {
   // Call database function to get or create daily challenge
   const { data: challengeData, error: challengeError } = await supabase
-    // @ts-expect-error - Custom RPC function not in generated types
     .rpc('get_or_create_daily_challenge', { target_date: date })
 
   if (challengeError) throw challengeError
@@ -361,6 +361,314 @@ export async function getUserDailyRank(userId: string, date: string): Promise<nu
 
   if (countError) return null
   return (count || 0) + 1
+}
+
+// =====================================================
+// LOBBY MANAGEMENT FUNCTIONS
+// =====================================================
+
+/**
+ * Create a new multiplayer lobby
+ */
+export async function createLobby(hostId: string): Promise<Lobby> {
+  // Generate random room code
+  const { data: codeData, error: codeError } = await supabase
+    .rpc('generate_room_code')
+
+  if (codeError) throw codeError
+  const roomCode = codeData as string
+
+  // Select 10 random figures
+  const figures = await getRandomFigures(10)
+  const figureIds = figures.map(f => f.id)
+
+  // Set expiration to 24 hours from now
+  const expiresAt = new Date()
+  expiresAt.setHours(expiresAt.getHours() + 24)
+
+  const { data, error } = await supabaseUntyped
+    .from('lobbies')
+    .insert({
+      room_code: roomCode,
+      host_id: hostId,
+      figure_ids: figureIds,
+      expires_at: expiresAt.toISOString()
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as Lobby
+}
+
+/**
+ * Join an existing lobby
+ */
+export async function joinLobby(userId: string, username: string, roomCode: string): Promise<{ lobby: Lobby; player: LobbyPlayer }> {
+  // Find the lobby
+  const { data: lobby, error: lobbyError } = await supabaseUntyped
+    .from('lobbies')
+    .select('*')
+    .eq('room_code', roomCode.toUpperCase())
+    .single()
+
+  if (lobbyError) {
+    if (lobbyError.code === 'PGRST116') {
+      throw new Error('Lobby not found')
+    }
+    throw lobbyError
+  }
+
+  if (lobby.status !== 'waiting') {
+    throw new Error('Game has already started')
+  }
+
+  // Check player capacity (max 8)
+  const { count: playerCount, error: countError } = await supabaseUntyped
+    .from('lobby_players')
+    .select('*', { count: 'exact', head: true })
+    .eq('lobby_id', lobby.id)
+
+  if (countError) throw countError
+  if (playerCount && playerCount >= 8) {
+    throw new Error('Lobby is full (maximum 8 players)')
+  }
+
+  // Check if user is already in the lobby
+  const { data: existingPlayer, error: existingError } = await supabaseUntyped
+    .from('lobby_players')
+    .select('*')
+    .eq('lobby_id', lobby.id)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (existingError) throw existingError
+  if (existingPlayer) {
+    throw new Error('You are already in this lobby')
+  }
+
+  // Add player to lobby
+  const { data: player, error: playerError } = await supabaseUntyped
+    .from('lobby_players')
+    .insert({
+      lobby_id: lobby.id,
+      user_id: userId,
+      username: username
+    })
+    .select()
+    .single()
+
+  if (playerError) throw playerError
+
+  return {
+    lobby: lobby as Lobby,
+    player: player as LobbyPlayer
+  }
+}
+
+/**
+ * Get lobby details with players
+ */
+export async function getLobbyWithPlayers(lobbyId: string): Promise<{ lobby: Lobby; players: LobbyPlayer[] }> {
+  const { data: lobby, error: lobbyError } = await supabaseUntyped
+    .from('lobbies')
+    .select('*')
+    .eq('id', lobbyId)
+    .single()
+
+  if (lobbyError) throw lobbyError
+
+  const { data: players, error: playersError } = await supabaseUntyped
+    .from('lobby_players')
+    .select('*')
+    .eq('lobby_id', lobbyId)
+    .order('joined_at', { ascending: true })
+
+  if (playersError) throw playersError
+
+  return {
+    lobby: lobby as Lobby,
+    players: players as LobbyPlayer[]
+  }
+}
+
+/**
+ * Start a multiplayer game
+ */
+export async function startGame(lobbyId: string, hostId: string): Promise<void> {
+  // Verify user is the host
+  const { data: lobby, error: lobbyError } = await supabaseUntyped
+    .from('lobbies')
+    .select('host_id')
+    .eq('id', lobbyId)
+    .single()
+
+  if (lobbyError) throw lobbyError
+  if (lobby.host_id !== hostId) {
+    throw new Error('Only the host can start the game')
+  }
+
+  // Check that all players are ready
+  const { data: players, error: playersError } = await supabaseUntyped
+    .from('lobby_players')
+    .select('ready')
+    .eq('lobby_id', lobbyId)
+
+  if (playersError) throw playersError
+  const allReady = players.every(player => player.ready)
+  if (!allReady) {
+    throw new Error('All players must be ready before starting')
+  }
+
+  // Start the game
+  const { error: startError } = await supabaseUntyped
+    .from('lobbies')
+    .update({
+      status: 'in_progress',
+      current_round: 1
+    })
+    .eq('id', lobbyId)
+
+  if (startError) throw startError
+}
+
+/**
+ * Submit a guess in multiplayer
+ */
+export async function submitMultiplayerGuess(
+  lobbyId: string,
+  userId: string,
+  roundNumber: number,
+  figureId: string,
+  guessedName: string,
+  guessedLat: number,
+  guessedLon: number,
+  guessedYear: number,
+  submissionTime: number,
+  score: number
+): Promise<LobbySubmission> {
+  const { data, error } = await supabaseUntyped
+    .from('lobby_submissions')
+    .insert({
+      lobby_id: lobbyId,
+      user_id: userId,
+      round_number: roundNumber,
+      figure_id: figureId,
+      guessed_name: guessedName,
+      guessed_lat: guessedLat,
+      guessed_lon: guessedLon,
+      guessed_year: guessedYear,
+      submission_time: submissionTime,
+      score: score
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as LobbySubmission
+}
+
+/**
+ * Get submissions for a specific round
+ */
+export async function getRoundSubmissions(lobbyId: string, roundNumber: number): Promise<LobbySubmission[]> {
+  const { data, error } = await supabaseUntyped
+    .from('lobby_submissions')
+    .select(`
+      *,
+      users!inner(username)
+    `)
+    .eq('lobby_id', lobbyId)
+    .eq('round_number', roundNumber)
+    .order('submitted_at', { ascending: true })
+
+  if (error) throw error
+  return data as LobbySubmission[]
+}
+
+/**
+ * Update player ready status
+ */
+export async function updatePlayerReady(lobbyId: string, userId: string, ready: boolean): Promise<void> {
+  const { error } = await supabaseUntyped
+    .from('lobby_players')
+    .update({ ready: ready })
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
+/**
+ * Leave a lobby
+ */
+export async function leaveLobby(lobbyId: string, userId: string): Promise<void> {
+  const { error } = await supabaseUntyped
+    .from('lobby_players')
+    .delete()
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+}
+
+/**
+ * Advance to next round
+ */
+export async function advanceRound(lobbyId: string): Promise<void> {
+  // Get current round
+  const { data: lobby, error: lobbyError } = await supabaseUntyped
+    .from('lobbies')
+    .select('current_round')
+    .eq('id', lobbyId)
+    .single()
+
+  if (lobbyError) throw lobbyError
+
+  const nextRound = lobby.current_round + 1
+
+  // If this was the last round, end the game
+  if (nextRound > 10) {
+    const { error: endError } = await supabaseUntyped
+      .from('lobbies')
+      .update({
+        status: 'finished',
+        current_round: 10
+      })
+      .eq('id', lobbyId)
+
+    if (endError) throw endError
+  } else {
+    // Advance to next round
+    const { error: advanceError } = await supabaseUntyped
+      .from('lobbies')
+      .update({ current_round: nextRound })
+      .eq('id', lobbyId)
+
+    if (advanceError) throw advanceError
+  }
+}
+
+/**
+ * Get final scores for a completed lobby
+ */
+export async function getFinalScores(lobbyId: string): Promise<{ user_id: string; username: string; score: number }[]> {
+  const { data, error } = await supabaseUntyped
+    .from('lobby_players')
+    .select('user_id, username, score')
+    .eq('lobby_id', lobbyId)
+    .order('score', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+/**
+ * Clean up finished lobbies (called by cron job)
+ */
+export async function cleanupFinishedLobbies(): Promise<void> {
+  const { error } = await supabase.rpc('delete_expired_lobbies')
+  if (error) throw error
 }
 
 

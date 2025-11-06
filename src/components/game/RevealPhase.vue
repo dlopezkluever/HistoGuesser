@@ -29,11 +29,47 @@
       </div>
     </Card>
 
-    <!-- Score breakdown -->
-    <ScoreBreakdown 
-      :round-score="roundScore" 
+    <!-- Score breakdown (single player) -->
+    <ScoreBreakdown
+      v-if="!isMultiplayer && roundScore"
+      :round-score="roundScore"
       :submission-time="submissionTime"
     />
+
+    <!-- Multiplayer Round Scores -->
+    <Card v-if="isMultiplayer" class="mb-6">
+      <h3 class="text-noir-gold font-medium mb-4 text-center">Round Scores</h3>
+
+      <div class="space-y-3">
+        <div
+          v-for="submission in roundSubmissions"
+          :key="submission.id"
+          class="flex items-center justify-between p-3 rounded-lg border border-noir-gold/20 bg-noir-surface/50"
+        >
+          <div class="flex items-center gap-3">
+            <span class="text-noir-text font-medium">{{ submission.guessed_name || 'No guess' }}</span>
+            <span class="text-noir-text opacity-60 text-sm">
+              {{ Math.round(submission.submission_time * 10) / 10 }}s
+            </span>
+          </div>
+          <div class="text-noir-gold font-mono font-bold">
+            {{ submission.score }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Your Guess (if provided) -->
+      <div v-if="guessedName || guessedLat || guessedLon || guessedYear" class="mt-4 pt-4 border-t border-noir-gold/20">
+        <h4 class="text-noir-text font-medium mb-2">Your Guess:</h4>
+        <div class="text-sm text-noir-text opacity-80">
+          <p v-if="guessedName">Name: {{ guessedName }}</p>
+          <p v-if="guessedLat && guessedLon">
+            Location: {{ guessedLat.toFixed(2) }}, {{ guessedLon.toFixed(2) }}
+          </p>
+          <p v-if="guessedYear">Year: {{ formatYear(guessedYear) }}</p>
+        </div>
+      </div>
+    </Card>
 
     <!-- Next button -->
     <div class="reveal-actions">
@@ -59,14 +95,22 @@ import Button from '@/components/ui/Button.vue';
 import ScoreBreakdown from './ScoreBreakdown.vue';
 import type { Figure } from '@/types/figure';
 import type { RoundScore } from '@/types/score';
+import type { LobbySubmission, LobbyPlayer } from '@/types/lobby';
 
 interface Props {
   figure: Figure;
-  roundScore: RoundScore;
+  roundScore?: RoundScore;
   submissionTime?: number;
   isLastRound?: boolean;
   autoAdvance?: boolean;
   autoAdvanceDelay?: number; // in seconds
+  isMultiplayer?: boolean;
+  roundSubmissions?: LobbySubmission[];
+  players?: LobbyPlayer[];
+  guessedName?: string;
+  guessedLat?: number;
+  guessedLon?: number;
+  guessedYear?: number;
 }
 
 const props = withDefaults(defineProps<Props>(), {

@@ -7,7 +7,7 @@ import GameplayView from '@/components/game/GameplayView.vue'
 import ResultsScreen from '@/components/game/ResultsScreen.vue'
 import { useAuth } from '@/composables/useAuth'
 import { getDailyChallengeFigures, getDailyChallengeStatus, submitDailyScore } from '@/lib/supabase/queries'
-import { calculateRoundScore } from '@/lib/scoring/calculateScore'
+import { calculateRoundScore } from '@/lib/scoring'
 import type { Figure } from '@/types/figure'
 
 const router = useRouter()
@@ -101,7 +101,7 @@ const handleSubmit = async (guess: any, submissionTime: number) => {
     currentFigure.value.birth_year,
     currentFigure.value.aliases,
     submissionTime,
-    'daily' // Game mode for speed bonus
+    'daily_challenge' // Game mode for speed bonus
   )
 
   // Map to component-expected format
