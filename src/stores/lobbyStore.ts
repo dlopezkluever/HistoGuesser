@@ -1,4 +1,4 @@
-import { create } from 'zustand'
+import { createStore } from 'zustand/vanilla'
 import type { Lobby, LobbyPlayer, LobbySubmission } from '@/types/lobby'
 import type { Figure } from '@/types/figure'
 
@@ -48,7 +48,7 @@ const initialState = {
   error: null
 }
 
-export const useLobbyStore = create<LobbyState>((set, get) => ({
+const store = createStore<LobbyState>((set, get) => ({
   ...initialState,
 
   setLobby: (lobby, player) => set({
@@ -100,3 +100,5 @@ export const useLobbyStore = create<LobbyState>((set, get) => ({
 
   reset: () => set(initialState)
 }))
+
+export const lobbyStore = store

@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import { useLobby } from '@/composables/useLobby'
-import { useLobbyStore } from '@/stores/lobbyStore'
+import { lobbyStore } from '@/stores/lobbyStore'
 import FigureCarousel from '@/components/game/FigureCarousel.vue'
 import InteractiveMap from '@/components/game/InteractiveMap.vue'
 import NameInput from '@/components/game/NameInput.vue'
@@ -18,7 +18,6 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const lobbyStore = useLobbyStore()
 const { submitGuess } = useLobby()
 
 // Game state
@@ -34,8 +33,8 @@ const timeRemaining = ref(45)
 const timerInterval = ref<NodeJS.Timeout | null>(null)
 
 // Computed properties
-const currentFigure = computed(() => lobbyStore.currentFigure)
-const roundSubmissions = computed(() => lobbyStore.roundSubmissions)
+const currentFigure = computed(() => lobbyStore.getState().currentFigure)
+const roundSubmissions = computed(() => lobbyStore.getState().roundSubmissions)
 const allPlayersSubmitted = computed(() =>
   roundSubmissions.value.length >= props.players.length
 )
@@ -110,7 +109,7 @@ const handleSubmitGuess = async () => {
       guessedName.value,
       guessedLat.value!,
       guessedLon.value!,
-      guessedYear.value!,
+      guessedYear.value,
       totalScore
     )
 

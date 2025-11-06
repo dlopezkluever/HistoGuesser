@@ -1,5 +1,5 @@
 import { ref, onUnmounted } from 'vue'
-import { useLobbyStore } from '@/stores/lobbyStore'
+import { lobbyStore } from '@/stores/lobbyStore'
 import { authStore } from '@/stores/authStore'
 import {
   createLobby,
@@ -16,15 +16,14 @@ import { getFigureById } from '@/lib/supabase/queries'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useLobby() {
-const lobbyStore = useLobbyStore()
   const realtimeChannel = ref<RealtimeChannel | null>(null)
 
   const createNewLobby = async () => {
     if (!authStore.getState().user) throw new Error('Must be logged in to create a lobby')
 
     try {
-      lobbyStore.setLoading(true)
-      lobbyStore.setError(null)
+      lobbyStore.getState().setLoading(true)
+      lobbyStore.getState().setError(null)
 
       const lobby = await createLobby(authStore.getState().user!.id)
 
@@ -34,8 +33,8 @@ const lobbyStore = useLobbyStore()
       // Set up the current player (host)
       const currentPlayer = players.find(p => p.user_id === authStore.getState().user!.id)!
 
-      lobbyStore.setLobby(lobbyWithPlayers, currentPlayer)
-      lobbyStore.updatePlayers(players)
+      lobbyStore.getState().setLobby(lobbyWithPlayers, currentPlayer)
+      lobbyStore.getState().updatePlayers(players)
 
       // Subscribe to realtime updates
       setupRealtimeSubscription(lobby.id)
@@ -43,7 +42,7 @@ const lobbyStore = useLobbyStore()
       return lobby
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create lobby'
-      lobbyStore.setError(message)
+      lobbyStore.getState().setError(message)
       throw error
     } finally {
       lobbyStore.setLoading(false)
@@ -54,8 +53,8 @@ const lobbyStore = useLobbyStore()
     if (!authStore.getState().user) throw new Error('Must be logged in to join a lobby')
 
     try {
-      lobbyStore.setLoading(true)
-      lobbyStore.setError(null)
+      lobbyStore.getState().setLoading(true)
+      lobbyStore.getState().setError(null)
 
       const { lobby, player } = await joinLobby(
         authStore.getState().user!.id,
@@ -67,8 +66,8 @@ const lobbyStore = useLobbyStore()
       // Get updated lobby with all players
       const { players } = await getLobbyWithPlayers(lobby.id)
 
-      lobbyStore.setLobby(lobby, player)
-      lobbyStore.updatePlayers(players)
+      lobbyStore.getState().setLobby(lobby, player)
+      lobbyStore.getState().updatePlayers(players)
 
       // Subscribe to realtime updates
       setupRealtimeSubscription(lobby.id)
@@ -76,7 +75,7 @@ const lobbyStore = useLobbyStore()
       return { lobby, player }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to join lobby'
-      lobbyStore.setError(message)
+      lobbyStore.getState().setError(message)
       throw error
     } finally {
       lobbyStore.setLoading(false)
@@ -84,33 +83,33 @@ const lobbyStore = useLobbyStore()
   }
 
   const toggleReady = async () => {
-    if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer) return
+    if (!lobbyStore.getState().currentLobby || !lobbyStore.getState().currentPlayer) return
 
     try {
-      const newReadyState = !lobbyStore.currentPlayer.ready
+      const newReadyState = !lobbyStore.getState().currentPlayer!.ready
       await updatePlayerReady(
-        lobbyStore.currentLobby.id,
-        lobbyStore.currentPlayer.user_id,
+        lobbyStore.getState().currentLobby!.id,
+        lobbyStore.getState().currentPlayer!.user_id,
         newReadyState
       )
 
       // Update local state immediately for responsive UI
-      lobbyStore.updatePlayerReady(lobbyStore.currentPlayer.id, newReadyState)
+      lobbyStore.getState().updatePlayerReady(lobbyStore.getState().currentPlayer!.id, newReadyState)
     } catch (error) {
       console.error('Failed to update ready status:', error)
     }
   }
 
   const startMultiplayerGame = async () => {
-    if (!lobbyStore.currentLobby || !authStore.getState().user) return
+    if (!lobbyStore.getState().currentLobby || !authStore.getState().user) return
 
     try {
-      lobbyStore.setLoading(true)
-      await startGame(lobbyStore.currentLobby.id, authStore.getState().user!.id)
+      lobbyStore.getState().setLoading(true)
+      await startGame(lobbyStore.getState().currentLobby!.id, authStore.getState().user!.id)
       // The realtime subscription will handle the status update
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to start game'
-      lobbyStore.setError(message)
+      lobbyStore.getState().setError(message)
       throw error
     } finally {
       lobbyStore.setLoading(false)
@@ -124,19 +123,19 @@ const lobbyStore = useLobbyStore()
     guessedYear: number,
     score: number
   ) => {
-    if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer || !lobbyStore.currentFigure) {
+    if (!lobbyStore.getState().currentLobby || !lobbyStore.getState().currentPlayer || !lobbyStore.getState().currentFigure) {
       throw new Error('Invalid game state')
     }
 
-    const submissionTime = lobbyStore.roundStartTime
-      ? (Date.now() - lobbyStore.roundStartTime) / 1000
+    const submissionTime = lobbyStore.getState().roundStartTime
+      ? (Date.now() - lobbyStore.getState().roundStartTime) / 1000
       : 0
 
     await submitMultiplayerGuess(
-      lobbyStore.currentLobby.id,
-      lobbyStore.currentPlayer.user_id,
-      lobbyStore.currentRound,
-      lobbyStore.currentFigure.id,
+      lobbyStore.getState().currentLobby.id,
+      lobbyStore.getState().currentPlayer.user_id,
+      lobbyStore.getState().currentRound,
+      lobbyStore.getState().currentFigure.id,
       guessedName,
       guessedLat,
       guessedLon,
@@ -147,10 +146,10 @@ const lobbyStore = useLobbyStore()
   }
 
   const leaveCurrentLobby = async () => {
-    if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer) return
+    if (!lobbyStore.getState().currentLobby || !lobbyStore.getState().currentPlayer) return
 
     try {
-      await leaveLobby(lobbyStore.currentLobby.id, lobbyStore.currentPlayer.user_id)
+      await leaveLobby(lobbyStore.getState().currentLobby!.id, lobbyStore.getState().currentPlayer!.user_id)
       cleanup()
     } catch (error) {
       console.error('Failed to leave lobby:', error)
@@ -164,25 +163,25 @@ const lobbyStore = useLobbyStore()
       onPlayerJoined: async (player) => {
         // Refresh players list
         const { players } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updatePlayers(players)
+        lobbyStore.getState().updatePlayers(players)
       },
 
       onPlayerLeft: async (playerId) => {
         // Refresh players list
         const { players } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updatePlayers(players)
+        lobbyStore.getState().updatePlayers(players)
       },
 
       onPlayerReady: async (playerId) => {
         // Refresh players list
         const { players } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updatePlayers(players)
+        lobbyStore.getState().updatePlayers(players)
       },
 
       onGameStarted: async () => {
         // Get updated lobby status
         const { lobby } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updateLobbyStatus(lobby.status, lobby.current_round)
+        lobbyStore.getState().updateLobbyStatus(lobby.status, lobby.current_round)
 
         // Load figures for the game
         const figures = []
@@ -190,33 +189,33 @@ const lobbyStore = useLobbyStore()
           const figure = await getFigureById(figureId)
           figures.push(figure)
         }
-        lobbyStore.setFigures(figures)
+          lobbyStore.getState().setFigures(figures)
 
         // Start first round
         if (figures.length > 0) {
-          lobbyStore.startRound(1, figures[0])
+          lobbyStore.getState().startRound(1, figures[0])
         }
       },
 
       onRoundStarted: async (roundNumber) => {
         // Get updated lobby status
         const { lobby } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updateLobbyStatus(lobby.status, roundNumber)
+        lobbyStore.getState().updateLobbyStatus(lobby.status, roundNumber)
 
         // Start the round with the appropriate figure
-        const figure = lobbyStore.figures[roundNumber - 1]
+        const figure = lobbyStore.getState().figures[roundNumber - 1]
         if (figure) {
-          lobbyStore.startRound(roundNumber, figure)
+          lobbyStore.getState().startRound(roundNumber, figure)
         }
       },
 
       onSubmissionReceived: async (submission) => {
         // Check if this completes the round (all players submitted)
-        const submissions = await getRoundSubmissions(lobbyId, lobbyStore.currentRound)
+        const submissions = await getRoundSubmissions(lobbyId, lobbyStore.getState().currentRound)
 
         // If all players have submitted, end the round
-        if (submissions.length >= lobbyStore.players.length) {
-          lobbyStore.endRound(submissions)
+        if (submissions.length >= lobbyStore.getState().players.length) {
+          lobbyStore.getState().endRound(submissions)
 
           // Update player scores
           const scoreUpdates = submissions.reduce((acc, sub) => {
@@ -225,8 +224,8 @@ const lobbyStore = useLobbyStore()
           }, {} as Record<string, number>)
 
           Object.entries(scoreUpdates).forEach(([userId, additionalScore]) => {
-            const currentScore = lobbyStore.players.find(p => p.user_id === userId)?.score || 0
-            lobbyStore.updatePlayerScore(userId, currentScore + additionalScore)
+            const currentScore = lobbyStore.getState().players.find(p => p.user_id === userId)?.score || 0
+            lobbyStore.getState().updatePlayerScore(userId, currentScore + additionalScore)
           })
         }
       },
@@ -257,16 +256,16 @@ const lobbyStore = useLobbyStore()
 
   return {
     // State
-    lobby: lobbyStore.currentLobby,
-    player: lobbyStore.currentPlayer,
-    players: lobbyStore.players,
-    figures: lobbyStore.figures,
-    currentRound: lobbyStore.currentRound,
-    currentFigure: lobbyStore.currentFigure,
-    roundSubmissions: lobbyStore.roundSubmissions,
-    isRoundActive: lobbyStore.isRoundActive,
-    isLoading: lobbyStore.isLoading,
-    error: lobbyStore.error,
+    lobby: lobbyStore.getState().currentLobby,
+    player: lobbyStore.getState().currentPlayer,
+    players: lobbyStore.getState().players,
+    figures: lobbyStore.getState().figures,
+    currentRound: lobbyStore.getState().currentRound,
+    currentFigure: lobbyStore.getState().currentFigure,
+    roundSubmissions: lobbyStore.getState().roundSubmissions,
+    isRoundActive: lobbyStore.getState().isRoundActive,
+    isLoading: lobbyStore.getState().isLoading,
+    error: lobbyStore.getState().error,
 
     // Actions
     createNewLobby,
