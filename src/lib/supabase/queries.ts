@@ -473,6 +473,16 @@ export async function joinLobby(userId: string, username: string, roomCode: stri
 
   if (playerError) throw playerError
 
+  // Broadcast player joined event to all lobby participants
+  const { broadcastLobbyEvent } = await import('./realtime')
+  try {
+    await broadcastLobbyEvent(lobby.id, 'player_joined', player)
+    console.log('📢 Broadcasted player joined event for', player.username)
+  } catch (broadcastError) {
+    console.warn('Failed to broadcast player joined event:', broadcastError)
+    // Don't fail the join if broadcast fails
+  }
+
   return {
     lobby: lobby as Lobby,
     player: player as LobbyPlayer

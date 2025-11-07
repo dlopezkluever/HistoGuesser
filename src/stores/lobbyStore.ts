@@ -62,7 +62,11 @@ const store = createStore<LobbyState>((set, get) => ({
     console.log('🏪 STORE: setLobby completed, new state:', lobbyStore.getState())
   },
 
-  updatePlayers: (players) => set({ players }),
+  updatePlayers: (players) => {
+    console.log('🏪 STORE: updatePlayers called with', players.length, 'players')
+    set({ players })
+    console.log('🏪 STORE: updatePlayers completed')
+  },
 
   updateLobbyStatus: (status, currentRound) => set({
     currentLobby: get().currentLobby ? { ...get().currentLobby!, status, current_round: currentRound } : null,

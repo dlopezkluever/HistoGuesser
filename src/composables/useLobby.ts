@@ -90,7 +90,13 @@ export function useLobby() {
       console.log('✅ Store operations and sync completed')
 
       // Subscribe to realtime updates
-      setupRealtimeSubscription(lobby.id)
+      console.log('🎯 About to setup realtime subscription...')
+      try {
+        setupRealtimeSubscription(lobby.id)
+        console.log('✅ Realtime subscription setup completed')
+      } catch (error) {
+        console.error('❌ Failed to setup realtime subscription:', error)
+      }
 
       return lobby
     } catch (error) {
@@ -123,7 +129,13 @@ export function useLobby() {
       lobbyStore.getState().updatePlayers(players)
 
       // Subscribe to realtime updates
-      setupRealtimeSubscription(lobby.id)
+      console.log('🎯 About to setup realtime subscription for join...')
+      try {
+        setupRealtimeSubscription(lobby.id)
+        console.log('✅ Realtime subscription setup completed for join')
+      } catch (error) {
+        console.error('❌ Failed to setup realtime subscription for join:', error)
+      }
 
       return { lobby, player }
     } catch (error) {
@@ -212,11 +224,16 @@ export function useLobby() {
   }
 
   const setupRealtimeSubscription = (lobbyId: string) => {
-    realtimeChannel.value = subscribeLobby(lobbyId, {
+    console.log('🔌 Setting up realtime subscription for lobby:', lobbyId)
+    try {
+      realtimeChannel.value = subscribeLobby(lobbyId, {
       onPlayerJoined: async (player) => {
+        console.log('👥 REALTIME CALLBACK: Player joined, refreshing players list')
         // Refresh players list
         const { players } = await getLobbyWithPlayers(lobbyId)
+        console.log('👥 REALTIME CALLBACK: Got players from DB:', players.length)
         lobbyStore.getState().updatePlayers(players)
+        console.log('👥 REALTIME CALLBACK: Updated store with players')
       },
 
       onPlayerLeft: async (playerId) => {
@@ -292,6 +309,9 @@ export function useLobby() {
         lobbyStore.getState().updateLobbyStatus('finished', 10)
       }
     })
+    } catch (error) {
+      console.error('❌ Error in setupRealtimeSubscription:', error)
+    }
   }
 
   const cleanup = () => {

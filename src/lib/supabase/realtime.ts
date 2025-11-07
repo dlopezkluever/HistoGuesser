@@ -18,6 +18,7 @@ export function subscribeLobby(
   }
 ): RealtimeChannel {
   const channel = supabase.channel(`lobby:${lobbyId}`)
+  console.log(`📡 Subscribing to channel: lobby:${lobbyId}`)
 
   // Subscribe to lobby_players table changes
   channel.on(
@@ -29,9 +30,16 @@ export function subscribeLobby(
       filter: `lobby_id=eq.${lobbyId}`,
     },
     (payload) => {
+      console.log('🔄 REALTIME: Player joined lobby via postgres_changes', payload.new)
       callbacks.onPlayerJoined?.(payload.new)
     }
   )
+
+  // Also subscribe to broadcast events for player joins (fallback)
+  channel.on('broadcast', { event: 'player_joined' }, (payload) => {
+    console.log('📢 REALTIME: Player joined lobby via broadcast', payload.payload)
+    callbacks.onPlayerJoined?.(payload.payload)
+  })
 
   channel.on(
     'postgres_changes',
@@ -99,7 +107,18 @@ export function subscribeLobby(
     }
   )
 
-  channel.subscribe()
+  channel.subscribe((status) => {
+    console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status)
+    if (status === 'SUBSCRIBED') {
+      console.log(`✅ Successfully subscribed to lobby:${lobbyId}`)
+    } else if (status === 'CHANNEL_ERROR') {
+      console.error(`❌ Channel error for lobby:${lobbyId}`)
+    } else if (status === 'TIMED_OUT') {
+      console.error(`⏰ Channel timed out for lobby:${lobbyId}`)
+    } else if (status === 'CLOSED') {
+      console.log(`🔌 Channel closed for lobby:${lobbyId}`)
+    }
+  })
 
   return channel
 }
