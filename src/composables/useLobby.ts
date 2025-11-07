@@ -148,20 +148,29 @@ export function useLobby() {
   }
 
   const toggleReady = async () => {
-    if (!lobbyStore.getState().currentLobby || !lobbyStore.getState().currentPlayer) return
+    console.log('🎯 toggleReady called')
+    if (!lobbyStore.getState().currentLobby || !lobbyStore.getState().currentPlayer) {
+      console.log('❌ toggleReady: Missing lobby or player')
+      return
+    }
 
     try {
       const newReadyState = !lobbyStore.getState().currentPlayer!.ready
+      console.log('🎯 toggleReady: Setting ready state to', newReadyState)
+
       await updatePlayerReady(
         lobbyStore.getState().currentLobby!.id,
         lobbyStore.getState().currentPlayer!.user_id,
         newReadyState
       )
 
+      console.log('✅ toggleReady: updatePlayerReady completed')
+
       // Update local state immediately for responsive UI
       lobbyStore.getState().updatePlayerReady(lobbyStore.getState().currentPlayer!.id, newReadyState)
+      console.log('✅ toggleReady: Local state updated')
     } catch (error) {
-      console.error('Failed to update ready status:', error)
+      console.error('❌ toggleReady: Failed to update ready status:', error)
     }
   }
 
@@ -229,23 +238,45 @@ export function useLobby() {
       realtimeChannel.value = subscribeLobby(lobbyId, {
       onPlayerJoined: async (player) => {
         console.log('👥 REALTIME CALLBACK: Player joined, refreshing players list')
-        // Refresh players list
-        const { players } = await getLobbyWithPlayers(lobbyId)
-        console.log('👥 REALTIME CALLBACK: Got players from DB:', players.length)
-        lobbyStore.getState().updatePlayers(players)
-        console.log('👥 REALTIME CALLBACK: Updated store with players')
+        try {
+          // Refresh players list
+          const { players } = await getLobbyWithPlayers(lobbyId)
+          console.log('👥 REALTIME CALLBACK: Got players from DB:', players.length)
+          lobbyStore.getState().updatePlayers(players)
+          console.log('👥 REALTIME CALLBACK: Updated store with players')
+        } catch (error) {
+          console.error('👥 REALTIME CALLBACK: Error in onPlayerJoined:', error)
+        }
       },
 
       onPlayerLeft: async (playerId) => {
-        // Refresh players list
-        const { players } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.getState().updatePlayers(players)
+        try {
+          // Refresh players list
+          const { players } = await getLobbyWithPlayers(lobbyId)
+          lobbyStore.getState().updatePlayers(players)
+        } catch (error) {
+          console.error('👥 REALTIME CALLBACK: Error in onPlayerLeft:', error)
+        }
       },
 
       onPlayerReady: async (playerId) => {
-        // Refresh players list
-        const { players } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.getState().updatePlayers(players)
+        console.log('👥 REALTIME CALLBACK: Player ready status changed for', playerId)
+        try {
+          // Refresh players list
+          const { players } = await getLobbyWithPlayers(lobbyId)
+          console.log('👥 REALTIME CALLBACK: Refreshed players after ready change:', players.length, 'players')
+          console.log('👥 REALTIME CALLBACK: Player ready statuses:', players.map(p => ({ id: p.user_id, ready: p.ready })))
+
+          lobbyStore.getState().updatePlayers(players)
+          console.log('👥 REALTIME CALLBACK: Updated store after ready change')
+
+          // Force a sync to ensure Vue reactivity
+          console.log('👥 REALTIME CALLBACK: Forcing reactive sync...')
+          syncState()
+          console.log('👥 REALTIME CALLBACK: Reactive sync completed')
+        } catch (error) {
+          console.error('👥 REALTIME CALLBACK: Error in onPlayerReady:', error)
+        }
       },
 
       onGameStarted: async () => {

@@ -36,6 +36,7 @@ const handleCopyCode = async () => {
 }
 
 const handleToggleReady = () => {
+  console.log('🎯 handleToggleReady called in component')
   toggleReady()
 }
 

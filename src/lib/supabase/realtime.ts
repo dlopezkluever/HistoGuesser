@@ -35,10 +35,31 @@ export function subscribeLobby(
     }
   )
 
+  // Subscribe to player ready status updates
+  channel.on(
+    'postgres_changes',
+    {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'lobby_players',
+      filter: `lobby_id=eq.${lobbyId}`,
+    },
+    (payload) => {
+      console.log('🔄 REALTIME: Player updated via postgres_changes', payload.new)
+      callbacks.onPlayerReady?.(payload.new.user_id)
+    }
+  )
+
   // Also subscribe to broadcast events for player joins (fallback)
   channel.on('broadcast', { event: 'player_joined' }, (payload) => {
     console.log('📢 REALTIME: Player joined lobby via broadcast', payload.payload)
     callbacks.onPlayerJoined?.(payload.payload)
+  })
+
+  // Subscribe to broadcast events for ready status updates (fallback)
+  channel.on('broadcast', { event: 'player_ready' }, (payload) => {
+    console.log('📢 REALTIME: Player ready status updated via broadcast', payload.payload)
+    callbacks.onPlayerReady?.(payload.payload.userId)
   })
 
   channel.on(

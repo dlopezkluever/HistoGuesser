@@ -620,6 +620,16 @@ export async function updatePlayerReady(lobbyId: string, userId: string, ready: 
     .eq('user_id', userId)
 
   if (error) throw error
+
+  // Broadcast ready status change to all lobby participants
+  const { broadcastLobbyEvent } = await import('./realtime')
+  try {
+    await broadcastLobbyEvent(lobbyId, 'player_ready', { userId, ready })
+    console.log('📢 Broadcasted player ready event for', userId, 'ready:', ready)
+  } catch (broadcastError) {
+    console.warn('Failed to broadcast player ready event:', broadcastError)
+    // Don't fail the ready update if broadcast fails
+  }
 }
 
 /**
