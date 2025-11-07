@@ -1,4 +1,4 @@
-import { ref, onUnmounted, reactive, computed, readonly } from 'vue'
+import { ref, onUnmounted } from 'vue'
 import { lobbyStore } from '@/stores/lobbyStore'
 import { authStore } from '@/stores/authStore'
 import {
@@ -303,23 +303,23 @@ export function useLobby() {
   }
 
   console.log('📤 useLobby returning with reactive state:', {
-    lobby: state.currentLobby,
-    player: state.currentPlayer,
-    isLoading: state.isLoading
+    lobby: lobby.value,
+    player: player.value,
+    isLoading: isLoading.value
   })
 
   return {
     // State (reactive refs synced with store)
-    lobby: readonly(lobby),
-    player: readonly(player),
-    players: readonly(players),
-    figures: readonly(figures),
-    currentRound: readonly(currentRound),
-    currentFigure: readonly(currentFigure),
-    roundSubmissions: readonly(roundSubmissions),
-    isRoundActive: readonly(isRoundActive),
-    isLoading: readonly(isLoading),
-    error: readonly(error),
+    lobby,
+    player,
+    players,
+    figures,
+    currentRound,
+    currentFigure,
+    roundSubmissions,
+    isRoundActive,
+    isLoading,
+    error,
 
     // Actions
     createNewLobby,

@@ -7,33 +7,30 @@ import { useLobby } from '@/composables/useLobby'
 import { lobbyStore } from '@/stores/lobbyStore'
 import { watch } from 'vue'
 
-const {
-  lobby,
-  player,
-  players,
-  currentRound,
-  isRoundActive,
-  isLoading,
-  error
-} = useLobby()
+// Get the composable directly (avoid destructuring issues)
+const lobbyComposable = useLobby()
+
+// Debug what we actually got
+console.log('🔍 lobbyComposable:', lobbyComposable)
+console.log('🔍 lobbyComposable.error:', lobbyComposable?.error)
 
 // Simple debug - log initial state
 console.log('🎯 MultiplayerView mounted, initial state:', {
-  lobby: lobby.value,
-  player: player.value,
-  isLoading: isLoading.value
+  lobby: lobbyComposable.lobby?.value,
+  player: lobbyComposable.player?.value,
+  isLoading: lobbyComposable.isLoading?.value
 })
 
 // Watch for state changes (readonly refs)
-watch(lobby, (newLobby, oldLobby) => {
+watch(lobbyComposable.lobby, (newLobby, oldLobby) => {
   console.log('🎯 LOBBY CHANGED:', { old: oldLobby, new: newLobby })
 })
 
-watch(player, (newPlayer, oldPlayer) => {
+watch(lobbyComposable.player, (newPlayer, oldPlayer) => {
   console.log('👤 PLAYER CHANGED:', { old: oldPlayer, new: newPlayer })
 })
 
-watch(isLoading, (newLoading, oldLoading) => {
+watch(lobbyComposable.isLoading, (newLoading, oldLoading) => {
   console.log('⏳ LOADING CHANGED:', { old: oldLoading, new: newLoading })
 })
 
@@ -41,9 +38,9 @@ watch(isLoading, (newLoading, oldLoading) => {
 const onCreateClick = () => {
   console.log('🎯 Create New Game button clicked!')
   console.log('Current state before create:', {
-    lobby: lobby.value,
-    player: player.value,
-    isLoading: isLoading.value
+    lobby: lobbyComposable.lobby?.value,
+    player: lobbyComposable.player?.value,
+    isLoading: lobbyComposable.isLoading?.value
   })
 }
 
@@ -87,17 +84,17 @@ const debugSetLobby = () => {
   <div class="min-h-screen bg-noir-bg text-noir-text p-4">
     <div class="max-w-4xl mx-auto">
       <!-- Loading State -->
-      <div v-if="isLoading.value" class="flex items-center justify-center min-h-[50vh]">
+      <div v-if="lobbyComposable.isLoading?.value" class="flex items-center justify-center min-h-[50vh]">
         <div class="card text-center">
           <div class="animate-pulse text-noir-gold">Loading...</div>
         </div>
       </div>
 
       <!-- Error State -->
-      <div v-else-if="error.value" class="flex items-center justify-center min-h-[50vh]">
+      <div v-else-if="lobbyComposable.error?.value" class="flex items-center justify-center min-h-[50vh]">
         <div class="card text-center max-w-md">
           <h2 class="text-xl text-noir-red mb-4">Error</h2>
-          <p class="text-noir-text mb-4">{{ error.value }}</p>
+          <p class="text-noir-text mb-4">{{ lobbyComposable.error?.value }}</p>
           <button
             @click="$router.go(-1)"
             class="btn-primary"
@@ -112,11 +109,11 @@ const debugSetLobby = () => {
         <!-- Debug Info -->
         <div class="mb-4 p-4 bg-noir-gold/10 border border-noir-gold/20 rounded">
           <h3 class="text-noir-gold font-bold mb-2">🔍 Debug Info</h3>
-          <p><strong>Lobby:</strong> {{ lobby.value ? 'EXISTS' : 'NULL' }}</p>
-          <p><strong>Status:</strong> {{ lobby.value?.status || 'N/A' }}</p>
-          <p><strong>Player:</strong> {{ player.value ? 'EXISTS' : 'NULL' }}</p>
-          <p><strong>Players Count:</strong> {{ players.value?.length || 0 }}</p>
-          <p><strong>Loading:</strong> {{ isLoading.value }}</p>
+          <p><strong>Lobby:</strong> {{ lobbyComposable.lobby?.value ? 'EXISTS' : 'NULL' }}</p>
+          <p><strong>Status:</strong> {{ lobbyComposable.lobby?.value?.status || 'N/A' }}</p>
+          <p><strong>Player:</strong> {{ lobbyComposable.player?.value ? 'EXISTS' : 'NULL' }}</p>
+          <p><strong>Players Count:</strong> {{ lobbyComposable.players?.value?.length || 0 }}</p>
+          <p><strong>Loading:</strong> {{ lobbyComposable.isLoading?.value }}</p>
           <button
             @click="debugSetLobby"
             class="mt-2 px-4 py-2 bg-noir-gold text-noir-bg rounded hover:bg-noir-gold/80 transition-colors"
@@ -126,7 +123,7 @@ const debugSetLobby = () => {
         </div>
 
         <!-- Create/Join Screen -->
-        <div v-if="!lobby.value" class="border-2 border-red-500 p-4">
+        <div v-if="!lobbyComposable.lobby?.value" class="border-2 border-red-500 p-4">
           <p class="text-red-400 mb-2">🔴 RENDERING: Create/Join Screen</p>
           <LobbyCreateJoin />
           <button
@@ -138,39 +135,39 @@ const debugSetLobby = () => {
         </div>
 
         <!-- Waiting Room -->
-        <div v-else-if="lobby.value && lobby.value.status === 'waiting'" class="border-2 border-green-500 p-4">
+        <div v-else-if="lobbyComposable.lobby?.value && lobbyComposable.lobby.value.status === 'waiting'" class="border-2 border-green-500 p-4">
           <p class="text-green-400 mb-2">🟢 RENDERING: Waiting Room</p>
           <LobbyWaitingRoom
-            :lobby="lobby.value"
-            :players="players.value || []"
-            :current-player="player.value"
+            :lobby="lobbyComposable.lobby.value"
+            :players="lobbyComposable.players?.value || []"
+            :current-player="lobbyComposable.player?.value"
           />
         </div>
 
         <!-- Active Game -->
-        <div v-else-if="lobby.value && lobby.value.status === 'in_progress' && isRoundActive.value" class="border-2 border-blue-500 p-4">
+        <div v-else-if="lobbyComposable.lobby?.value && lobbyComposable.lobby.value.status === 'in_progress' && lobbyComposable.isRoundActive?.value" class="border-2 border-blue-500 p-4">
           <p class="text-blue-400 mb-2">🔵 RENDERING: Active Game</p>
           <LobbyGameplay
-            :lobby="lobby.value"
-            :players="players.value || []"
-            :current-round="currentRound.value || 0"
+            :lobby="lobbyComposable.lobby.value"
+            :players="lobbyComposable.players?.value || []"
+            :current-round="lobbyComposable.currentRound?.value || 0"
           />
         </div>
 
         <!-- Game Results -->
-        <div v-else-if="lobby.value && lobby.value.status === 'finished'" class="border-2 border-purple-500 p-4">
+        <div v-else-if="lobbyComposable.lobby?.value && lobbyComposable.lobby.value.status === 'finished'" class="border-2 border-purple-500 p-4">
           <p class="text-purple-400 mb-2">🟣 RENDERING: Game Results</p>
           <LobbyResults
-            :lobby="lobby.value"
-            :players="players.value || []"
+            :lobby="lobbyComposable.lobby.value"
+            :players="lobbyComposable.players?.value || []"
           />
         </div>
 
         <!-- Fallback -->
         <div v-else class="border-2 border-yellow-500 p-4">
           <p class="text-yellow-400">🟡 RENDERING: Fallback (unexpected state)</p>
-          <p>Lobby: {{ JSON.stringify(lobby.value, null, 2) }}</p>
-          <p>Player: {{ JSON.stringify(player.value, null, 2) }}</p>
+          <p>Lobby: {{ JSON.stringify(lobbyComposable.lobby?.value, null, 2) }}</p>
+          <p>Player: {{ JSON.stringify(lobbyComposable.player?.value, null, 2) }}</p>
         </div>
       </template>
     </div>
