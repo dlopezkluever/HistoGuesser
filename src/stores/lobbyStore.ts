@@ -51,12 +51,16 @@ const initialState = {
 const store = createStore<LobbyState>((set, get) => ({
   ...initialState,
 
-  setLobby: (lobby, player) => set({
-    currentLobby: lobby,
-    currentPlayer: player,
-    currentRound: lobby.current_round,
-    isRoundActive: lobby.status === 'in_progress'
-  }),
+  setLobby: (lobby, player) => {
+    console.log('🏪 STORE: setLobby called with:', { lobby, player })
+    set({
+      currentLobby: lobby,
+      currentPlayer: player,
+      currentRound: lobby.current_round,
+      isRoundActive: lobby.status === 'in_progress'
+    })
+    console.log('🏪 STORE: setLobby completed, new state:', lobbyStore.getState())
+  },
 
   updatePlayers: (players) => set({ players }),
 

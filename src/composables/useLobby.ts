@@ -1,4 +1,4 @@
-import { ref, onUnmounted, computed } from 'vue'
+import { ref, onUnmounted, reactive, computed, readonly } from 'vue'
 import { lobbyStore } from '@/stores/lobbyStore'
 import { authStore } from '@/stores/authStore'
 import {
@@ -16,7 +16,55 @@ import { getFigureById } from '@/lib/supabase/queries'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 export function useLobby() {
+  console.log('🏗️ useLobby composable called')
   const realtimeChannel = ref<RealtimeChannel | null>(null)
+
+  // Create reactive refs that sync with Zustand store
+  const lobby = ref(null as any)
+  const player = ref(null as any)
+  const players = ref([] as any[])
+  const figures = ref([] as any[])
+  const currentRound = ref(0)
+  const currentFigure = ref(null as any)
+  const roundSubmissions = ref([] as any[])
+  const isRoundActive = ref(false)
+  const isLoading = ref(false)
+  const error = ref(null as string | null)
+
+  // Initialize refs with current store state
+  const syncState = () => {
+    const storeState = lobbyStore.getState()
+    console.log('🔄 SYNCING: Updating refs from store:', {
+      hasLobby: !!storeState.currentLobby,
+      hasPlayer: !!storeState.currentPlayer,
+      isLoading: storeState.isLoading
+    })
+
+    lobby.value = storeState.currentLobby
+    player.value = storeState.currentPlayer
+    players.value = storeState.players
+    figures.value = storeState.figures
+    currentRound.value = storeState.currentRound
+    currentFigure.value = storeState.currentFigure
+    roundSubmissions.value = storeState.roundSubmissions
+    isRoundActive.value = storeState.isRoundActive
+    isLoading.value = storeState.isLoading
+    error.value = storeState.error
+  }
+
+  // Initial sync
+  syncState()
+
+  // Set up Zustand subscribe to sync on store changes
+  const unsubscribe = lobbyStore.subscribe(() => {
+    syncState()
+  })
+
+  // Cleanup subscription on unmount
+  onUnmounted(() => {
+    console.log('🧹 Unsubscribing from lobbyStore')
+    unsubscribe()
+  })
 
   const createNewLobby = async () => {
     if (!authStore.getState().user) throw new Error('Must be logged in to create a lobby')
@@ -33,8 +81,13 @@ export function useLobby() {
       // Set up the current player (host)
       const currentPlayer = players.find(p => p.user_id === authStore.getState().user!.id)!
 
+      console.log('💾 About to call setLobby...')
       lobbyStore.getState().setLobby(lobbyWithPlayers, currentPlayer)
+      console.log('👥 About to call updatePlayers...')
       lobbyStore.getState().updatePlayers(players)
+      console.log('🔄 Syncing reactive state after store operations...')
+      syncState()
+      console.log('✅ Store operations and sync completed')
 
       // Subscribe to realtime updates
       setupRealtimeSubscription(lobby.id)
@@ -249,35 +302,24 @@ export function useLobby() {
     lobbyStore.getState().reset()
   }
 
-  // Auto-cleanup on component unmount
-  onUnmounted(() => {
-    cleanup()
+  console.log('📤 useLobby returning with reactive state:', {
+    lobby: state.currentLobby,
+    player: state.currentPlayer,
+    isLoading: state.isLoading
   })
 
-  // Create reactive computed properties for Vue reactivity
-  const lobby = computed(() => lobbyStore.getState().currentLobby)
-  const player = computed(() => lobbyStore.getState().currentPlayer)
-  const players = computed(() => lobbyStore.getState().players)
-  const figures = computed(() => lobbyStore.getState().figures)
-  const currentRound = computed(() => lobbyStore.getState().currentRound)
-  const currentFigure = computed(() => lobbyStore.getState().currentFigure)
-  const roundSubmissions = computed(() => lobbyStore.getState().roundSubmissions)
-  const isRoundActive = computed(() => lobbyStore.getState().isRoundActive)
-  const isLoading = computed(() => lobbyStore.getState().isLoading)
-  const error = computed(() => lobbyStore.getState().error)
-
   return {
-    // State (now reactive)
-    lobby,
-    player,
-    players,
-    figures,
-    currentRound,
-    currentFigure,
-    roundSubmissions,
-    isRoundActive,
-    isLoading,
-    error,
+    // State (reactive refs synced with store)
+    lobby: readonly(lobby),
+    player: readonly(player),
+    players: readonly(players),
+    figures: readonly(figures),
+    currentRound: readonly(currentRound),
+    currentFigure: readonly(currentFigure),
+    roundSubmissions: readonly(roundSubmissions),
+    isRoundActive: readonly(isRoundActive),
+    isLoading: readonly(isLoading),
+    error: readonly(error),
 
     // Actions
     createNewLobby,

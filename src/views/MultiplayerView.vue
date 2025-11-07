@@ -18,30 +18,39 @@ const {
 } = useLobby()
 
 // Simple debug - log initial state
-console.log('🎯 MultiplayerView mounted, initial state:', { lobby: lobby.value, player: player.value, isLoading: isLoading.value })
+console.log('🎯 MultiplayerView mounted, initial state:', {
+  lobby: lobby.value,
+  player: player.value,
+  isLoading: isLoading.value
+})
 
-// Watch for state changes
+// Watch for state changes (readonly refs)
 watch(lobby, (newLobby, oldLobby) => {
-  console.log('🎯 LOBBY COMPUTED CHANGED:', { old: oldLobby, new: newLobby })
+  console.log('🎯 LOBBY CHANGED:', { old: oldLobby, new: newLobby })
 })
 
 watch(player, (newPlayer, oldPlayer) => {
-  console.log('👤 PLAYER COMPUTED CHANGED:', { old: oldPlayer, new: newPlayer })
+  console.log('👤 PLAYER CHANGED:', { old: oldPlayer, new: newPlayer })
 })
 
 watch(isLoading, (newLoading, oldLoading) => {
-  console.log('⏳ LOADING COMPUTED CHANGED:', { old: oldLoading, new: newLoading })
+  console.log('⏳ LOADING CHANGED:', { old: oldLoading, new: newLoading })
 })
 
 // Debug button click handler
 const onCreateClick = () => {
   console.log('🎯 Create New Game button clicked!')
-  console.log('Current state before create:', { lobby: lobby.value, player: player.value, isLoading: isLoading.value })
+  console.log('Current state before create:', {
+    lobby: lobby.value,
+    player: player.value,
+    isLoading: isLoading.value
+  })
 }
 
 // Debug function to manually test state
 const debugSetLobby = () => {
   console.log('🔧 Manually setting debug lobby...')
+
   const debugLobby = {
     id: 'test-lobby-id',
     room_code: 'DEBUG',
@@ -52,6 +61,7 @@ const debugSetLobby = () => {
     created_at: new Date().toISOString(),
     expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   }
+
   const debugPlayer = {
     id: 'test-player-id',
     lobby_id: 'test-lobby-id',
@@ -62,8 +72,12 @@ const debugSetLobby = () => {
     connected: true,
     joined_at: new Date().toISOString()
   }
+
+  console.log('🔧 Calling lobbyStore.getState().setLobby()...')
   lobbyStore.getState().setLobby(debugLobby, debugPlayer)
+  console.log('🔧 Calling lobbyStore.getState().updatePlayers()...')
   lobbyStore.getState().updatePlayers([debugPlayer])
+  console.log('🔧 Debug state setting completed')
 }
 
 // Redirect to login if not authenticated will be handled in template
@@ -128,7 +142,7 @@ const debugSetLobby = () => {
           <p class="text-green-400 mb-2">🟢 RENDERING: Waiting Room</p>
           <LobbyWaitingRoom
             :lobby="lobby.value"
-            :players="players.value"
+            :players="players.value || []"
             :current-player="player.value"
           />
         </div>
@@ -138,8 +152,8 @@ const debugSetLobby = () => {
           <p class="text-blue-400 mb-2">🔵 RENDERING: Active Game</p>
           <LobbyGameplay
             :lobby="lobby.value"
-            :players="players.value"
-            :current-round="currentRound.value"
+            :players="players.value || []"
+            :current-round="currentRound.value || 0"
           />
         </div>
 
@@ -148,7 +162,7 @@ const debugSetLobby = () => {
           <p class="text-purple-400 mb-2">🟣 RENDERING: Game Results</p>
           <LobbyResults
             :lobby="lobby.value"
-            :players="players.value"
+            :players="players.value || []"
           />
         </div>
 
