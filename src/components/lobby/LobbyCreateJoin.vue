@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '@/composables/useLobby'
 import Button from '@/components/ui/Button.vue'
@@ -9,12 +9,19 @@ import Input from '@/components/ui/Input.vue'
 const { createNewLobby, joinExistingLobby, isLoading } = useLobby()
 const router = useRouter()
 
+onMounted(() => {
+  console.log('🎨 LobbyCreateJoin component mounted!')
+  console.log('🔍 LobbyCreateJoin props:', { isLoading: isLoading.value })
+})
+
 const roomCode = ref('')
 const joinError = ref('')
 
 const handleCreateLobby = async () => {
   console.log('🏗️ LobbyCreateJoin.handleCreateLobby called!')
+  console.log('🔍 Component state:', { isLoading: isLoading.value })
   try {
+    console.log('🚀 Calling createNewLobby...')
     await createNewLobby()
     console.log('✅ createNewLobby completed successfully')
   } catch (error) {

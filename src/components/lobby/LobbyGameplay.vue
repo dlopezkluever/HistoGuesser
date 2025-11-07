@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
+import type { Figure } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
-import { lobbyStore } from '@/stores/lobbyStore'
+// Removed lobbyStore import - now getting data from props
 import FigureCarousel from '@/components/game/FigureCarousel.vue'
 import InteractiveMap from '@/components/game/InteractiveMap.vue'
 import NameInput from '@/components/game/NameInput.vue'
@@ -14,6 +15,7 @@ interface Props {
   lobby: Lobby
   players: LobbyPlayer[]
   currentRound: number
+  figures: Figure[]
 }
 
 const props = defineProps<Props>()
@@ -32,9 +34,19 @@ const showReveal = ref(false)
 const timeRemaining = ref(45)
 const timerInterval = ref<NodeJS.Timeout | null>(null)
 
-// Computed properties
-const currentFigure = computed(() => lobbyStore.getState().currentFigure)
-const roundSubmissions = computed(() => lobbyStore.getState().roundSubmissions)
+// Computed properties - now derived from props
+const currentFigure = computed(() => {
+  // Get figure from figures array based on current round (1-indexed)
+  if (props.figures && props.currentRound >= 1 && props.currentRound <= props.figures.length) {
+    return props.figures[props.currentRound - 1]
+  }
+  return null
+})
+const roundSubmissions = computed(() => {
+  // This would need to be passed as a prop or fetched
+  // For now, return empty array
+  return []
+})
 const allPlayersSubmitted = computed(() =>
   roundSubmissions.value.length >= props.players.length
 )
