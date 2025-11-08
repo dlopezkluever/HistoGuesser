@@ -46,7 +46,13 @@ export function subscribeLobby(
     },
     (payload) => {
       console.log('🔄 REALTIME: Player updated via postgres_changes', payload.new)
-      callbacks.onPlayerReady?.(payload.new.user_id)
+      console.log('🔄 REALTIME: About to call onPlayerReady callback with user_id:', payload.new.user_id)
+      try {
+        callbacks.onPlayerReady?.(payload.new.user_id)
+        console.log('🔄 REALTIME: onPlayerReady callback called successfully')
+      } catch (error) {
+        console.error('🔄 REALTIME: Error calling onPlayerReady callback:', error)
+      }
     }
   )
 
@@ -59,7 +65,13 @@ export function subscribeLobby(
   // Subscribe to broadcast events for ready status updates (fallback)
   channel.on('broadcast', { event: 'player_ready' }, (payload) => {
     console.log('📢 REALTIME: Player ready status updated via broadcast', payload.payload)
-    callbacks.onPlayerReady?.(payload.payload.userId)
+    console.log('📢 REALTIME: About to call onPlayerReady callback with userId:', payload.payload.userId)
+    try {
+      callbacks.onPlayerReady?.(payload.payload.userId)
+      console.log('📢 REALTIME: onPlayerReady callback called successfully')
+    } catch (error) {
+      console.error('📢 REALTIME: Error calling onPlayerReady callback:', error)
+    }
   })
 
   channel.on(
@@ -72,21 +84,6 @@ export function subscribeLobby(
     },
     (payload) => {
       callbacks.onPlayerLeft?.(payload.old.id)
-    }
-  )
-
-  channel.on(
-    'postgres_changes',
-    {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'lobby_players',
-      filter: `lobby_id=eq.${lobbyId}`,
-    },
-    (payload) => {
-      if (payload.new.ready && !payload.old.ready) {
-        callbacks.onPlayerReady?.(payload.new.id)
-      }
     }
   )
 

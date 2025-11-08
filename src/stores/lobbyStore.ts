@@ -68,16 +68,26 @@ export const useLobbyStore = defineStore('lobby', () => {
   }
 
   const updatePlayerReady = (playerId: string, ready: boolean) => {
+    console.log('🏪 STORE: updatePlayerReady called for player', playerId, 'ready:', ready)
     const playerIndex = players.value.findIndex(p => p.id === playerId)
     if (playerIndex !== -1) {
-      players.value[playerIndex] = { ...players.value[playerIndex], ready }
+      // Create a fresh array to ensure reactivity
+      const updatedPlayers = [...players.value]
+      updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], ready }
+      players.value = updatedPlayers
+      console.log('🏪 STORE: updatePlayerReady completed - fresh array assigned')
+    } else {
+      console.log('🏪 STORE: updatePlayerReady - player not found:', playerId)
     }
   }
 
   const updatePlayerScore = (playerId: string, score: number) => {
     const playerIndex = players.value.findIndex(p => p.id === playerId)
     if (playerIndex !== -1) {
-      players.value[playerIndex] = { ...players.value[playerIndex], score }
+      // Create a fresh array to ensure reactivity
+      const updatedPlayers = [...players.value]
+      updatedPlayers[playerIndex] = { ...updatedPlayers[playerIndex], score }
+      players.value = updatedPlayers
     }
   }
 

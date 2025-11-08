@@ -90,24 +90,41 @@ export function useLobby() {
   }
 
   const joinExistingLobby = async (roomCode: string) => {
-    if (!authStore.getState().user) throw new Error('Must be logged in to join a lobby')
+    console.log('🚪 joinExistingLobby called with roomCode:', roomCode)
+
+    if (!authStore.getState().user) {
+      console.error('❌ No authenticated user found')
+      throw new Error('Must be logged in to join a lobby')
+    }
+
+    console.log('👤 Authenticated user:', authStore.getState().user.id)
+
+    // Clean up any existing lobby state before joining
+    console.log('🧹 Cleaning up any existing lobby state before joining')
+    cleanup()
 
     try {
+      console.log('⏳ Setting loading state to true')
       lobbyStore.setLoading(true)
       lobbyStore.setError(null)
 
+      console.log('🔄 Calling joinLobby API...')
       const { lobby, player } = await joinLobby(
         authStore.getState().user!.id,
         // @ts-expect-error - user_metadata exists on Supabase User type
         authStore.getState().user!.user_metadata?.username || 'Anonymous',
         roomCode
       )
+      console.log('✅ joinLobby API returned:', { lobbyId: lobby.id, roomCode: lobby.room_code, playerId: player.id })
 
-      // Get updated lobby with all players
+      console.log('📊 Fetching updated players list...')
       const { players } = await getLobbyWithPlayers(lobby.id)
+      console.log('✅ Got players list:', players.length, 'players')
 
+      console.log('💾 Setting lobby and players in store...')
       lobbyStore.setLobby(lobby, player)
       lobbyStore.updatePlayers(players)
+      console.log('✅ Store updated successfully')
 
       // Subscribe to realtime updates
       console.log('🎯 About to setup realtime subscription for join...')
@@ -118,12 +135,15 @@ export function useLobby() {
         console.error('❌ Failed to setup realtime subscription for join:', error)
       }
 
+      console.log('🎉 joinExistingLobby completed successfully')
       return { lobby, player }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to join lobby'
+      console.error('❌ joinExistingLobby failed:', message)
       lobbyStore.setError(message)
       throw error
     } finally {
+      console.log('🔄 Setting loading state to false')
       lobbyStore.setLoading(false)
     }
   }
@@ -241,13 +261,15 @@ export function useLobby() {
       },
 
       onPlayerReady: async (_playerId) => {
-        console.log('👥 REALTIME CALLBACK: Player ready status changed')
+        console.log('👥 REALTIME CALLBACK: Player ready status changed for player:', _playerId)
         try {
+          console.log('👥 REALTIME CALLBACK: About to refresh players list for lobby:', lobbyId)
           // Refresh players list
           const { players } = await getLobbyWithPlayers(lobbyId)
           console.log('👥 REALTIME CALLBACK: Refreshed players after ready change:', players.length, 'players')
           console.log('👥 REALTIME CALLBACK: Player ready statuses:', players.map(p => ({ id: p.user_id, ready: p.ready })))
 
+          console.log('👥 REALTIME CALLBACK: About to update store with players')
           lobbyStore.updatePlayers(players)
           console.log('👥 REALTIME CALLBACK: Updated store after ready change - reactivity is automatic!')
         } catch (error) {
@@ -322,34 +344,26 @@ export function useLobby() {
   }
 
   const cleanup = () => {
+    console.log('🧹 Cleaning up lobby state and realtime subscriptions')
+
+    // Clean up realtime subscription
     if (realtimeChannel.value) {
+      console.log('🔌 Unsubscribing from realtime channel')
       unsubscribeLobby(realtimeChannel.value)
       realtimeChannel.value = null
     }
+
+    // Reset store state
+    console.log('🔄 Resetting lobby store')
     lobbyStore.reset()
+
+    console.log('✅ Cleanup completed')
   }
 
-  console.log('📤 useLobby returning with Pinia reactive state - automatic reactivity!')
+  console.log('📤 useLobby returning actions only - state accessed via store directly')
 
-  const returnObject = {
-    // State (directly from Pinia store - automatically reactive!)
-    lobby: lobbyStore.currentLobby,
-    player: lobbyStore.currentPlayer,
-    players: lobbyStore.players,
-    figures: lobbyStore.figures,
-    currentRound: lobbyStore.currentRound,
-    currentFigure: lobbyStore.currentFigure,
-    roundSubmissions: lobbyStore.roundSubmissions,
-    isRoundActive: lobbyStore.isRoundActive,
-    isLoading: lobbyStore.isLoading,
-    error: lobbyStore.error,
-
-    // Computed properties
-    isHost: lobbyStore.isHost,
-    connectedPlayers: lobbyStore.connectedPlayers,
-    readyPlayers: lobbyStore.readyPlayers,
-
-    // Actions
+  return {
+    // Actions only - state is accessed directly from store in components
     createNewLobby,
     joinExistingLobby,
     toggleReady,
@@ -358,12 +372,4 @@ export function useLobby() {
     leaveCurrentLobby,
     cleanup
   }
-
-  console.log('📤 Return object created:', {
-    hasIsLoading: 'isLoading' in returnObject,
-    isLoadingValue: returnObject.isLoading,
-    hasCreateNewLobby: typeof returnObject.createNewLobby === 'function'
-  })
-
-  return returnObject
 }

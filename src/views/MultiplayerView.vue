@@ -40,6 +40,16 @@ console.log('🎯 MultiplayerView mounted, initial state:', {
   isLoading: isLoading.value
 })
 
+// Watch for store changes to debug reactivity
+watch([lobby, player, players], ([newLobby, newPlayer, newPlayers]) => {
+  console.log('🎯 MultiplayerView store changed:', {
+    lobby: newLobby,
+    player: newPlayer,
+    playersCount: newPlayers?.length || 0,
+    players: newPlayers?.map(p => ({ id: p.id, user_id: p.user_id, ready: p.ready, username: p.username }))
+  })
+}, { deep: true, immediate: true })
+
 // Debug button click handler
 const onCreateClick = () => {
   console.log('🎯 Create New Game button clicked!')

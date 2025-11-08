@@ -41,6 +41,7 @@ const handleCreateLobby = async () => {
 }
 
 const handleJoinLobby = async () => {
+  console.log('🏗️ LobbyCreateJoin.handleJoinLobby called with roomCode:', roomCode.value)
   if (!roomCode.value.trim()) {
     joinError.value = 'Please enter a room code'
     return
@@ -48,8 +49,11 @@ const handleJoinLobby = async () => {
 
   try {
     joinError.value = ''
+    console.log('🚀 Calling joinExistingLobby...')
     await joinExistingLobby(roomCode.value.trim().toUpperCase())
+    console.log('✅ joinExistingLobby completed successfully')
   } catch (error) {
+    console.log('❌ joinExistingLobby failed:', error)
     joinError.value = error instanceof Error ? error.message : 'Failed to join lobby'
   }
 }

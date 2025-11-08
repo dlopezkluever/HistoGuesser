@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useLobbyStore } from '@/stores/lobbyStore'
+import { storeToRefs } from 'pinia'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import { useLobby } from '@/composables/useLobby'
 import Button from '@/components/ui/Button.vue'
@@ -12,7 +14,13 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const { toggleReady, startMultiplayerGame, leaveCurrentLobby, isLoading } = useLobby()
+
+// Use store directly for reactive state
+const lobbyStore = useLobbyStore()
+const { isLoading } = storeToRefs(lobbyStore)
+
+// Get actions from composable
+const { toggleReady, startMultiplayerGame, leaveCurrentLobby } = useLobby()
 
 // Debug prop changes
 console.log('🎯 LobbyWaitingRoom props:', {
