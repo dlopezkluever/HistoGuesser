@@ -143,7 +143,21 @@ export function subscribeLobby(
       console.error(`⏰ Channel timed out for lobby:${lobbyId}:`, err)
     } else if (status === 'CLOSED') {
       console.log(`🔌 Channel closed for lobby:${lobbyId}:`, err)
+      // Don't try to resubscribe on explicit close
     }
+  })
+
+  // Add connection state monitoring
+  channel.on('system', { event: 'CHANNEL_JOIN' }, () => {
+    console.log(`🔗 Channel joined for lobby:${lobbyId}`)
+  })
+
+  channel.on('system', { event: 'CHANNEL_LEAVE' }, () => {
+    console.log(`👋 Channel left for lobby:${lobbyId}`)
+  })
+
+  channel.on('system', { event: 'CHANNEL_ERROR' }, (error) => {
+    console.error(`💥 Channel system error for lobby:${lobbyId}:`, error)
   })
 
   return channel

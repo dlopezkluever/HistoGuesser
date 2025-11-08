@@ -40,13 +40,21 @@ const isHost = computed(() =>
   props.currentPlayer?.user_id === props.lobby.host_id
 )
 
-const allPlayersReady = computed(() =>
-  props.players.length > 0 && props.players.every(player => player.ready)
-)
+const allPlayersReady = computed(() => {
+  const ready = props.players.length > 0 && props.players.every(player => player.ready)
+  console.log('🎯 LobbyWaitingRoom allPlayersReady computed:', ready, 'players:', props.players.map(p => ({ id: p.user_id, ready: p.ready })))
+  return ready
+})
 
-const canStartGame = computed(() =>
-  isHost.value && allPlayersReady.value && props.players.length >= 2
-)
+const canStartGame = computed(() => {
+  const canStart = isHost.value && allPlayersReady.value && props.players.length >= 2
+  console.log('🎯 LobbyWaitingRoom canStartGame computed:', canStart, {
+    isHost: isHost.value,
+    allPlayersReady: allPlayersReady.value,
+    playerCount: props.players.length
+  })
+  return canStart
+})
 
 const handleCopyCode = async () => {
   try {

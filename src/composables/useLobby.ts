@@ -113,14 +113,8 @@ export function useLobby() {
     console.log('🧹 Cleaning up any existing lobby state before joining')
     cleanup()
 
-    // Also leave any existing lobbies in the database
-    console.log('🏠 Leaving any existing lobbies in database before joining')
-    try {
-      await leaveAllLobbies(authStore.getState().user!.id)
-    } catch (cleanupError) {
-      console.warn('⚠️ Failed to cleanup existing lobbies:', cleanupError)
-      // Don't fail the join if cleanup fails
-    }
+    // Note: We don't preemptively leave all lobbies here as it can interfere with the join process
+    // The joinLobby function will handle removing the user from existing lobbies if needed
 
     try {
       console.log('⏳ Setting loading state to true')
@@ -176,21 +170,27 @@ export function useLobby() {
 
     try {
       const newReadyState = !lobbyStore.currentPlayer.ready
-      console.log('🎯 toggleReady: Setting ready state to', newReadyState)
+      console.log('🎯 toggleReady: Current ready state:', lobbyStore.currentPlayer.ready, '→ New state:', newReadyState)
 
+      // Update local state immediately for responsive UI (optimistic update)
+      console.log('⚡ toggleReady: Applying optimistic local update')
+      lobbyStore.updatePlayerReady(lobbyStore.currentPlayer.id, newReadyState)
+
+      // Then update database
+      console.log('🔄 toggleReady: Updating database...')
       await updatePlayerReady(
         lobbyStore.currentLobby.id,
         lobbyStore.currentPlayer.user_id,
         newReadyState
       )
 
-      console.log('✅ toggleReady: updatePlayerReady completed')
-
-      // Update local state immediately for responsive UI
-      lobbyStore.updatePlayerReady(lobbyStore.currentPlayer.id, newReadyState)
-      console.log('✅ toggleReady: Local state updated')
+      console.log('✅ toggleReady: Database update completed - optimistic update confirmed')
     } catch (error) {
       console.error('❌ toggleReady: Failed to update ready status:', error)
+      // Revert optimistic update on failure
+      console.log('↩️ toggleReady: Reverting optimistic update due to error')
+      const revertState = lobbyStore.currentPlayer.ready // This is the failed state, revert to opposite
+      lobbyStore.updatePlayerReady(lobbyStore.currentPlayer.id, !revertState)
     }
   }
 
@@ -291,13 +291,39 @@ export function useLobby() {
         console.log('👥 REALTIME CALLBACK: Player ready status changed for player:', _playerId)
         try {
           console.log('👥 REALTIME CALLBACK: About to refresh players list for lobby:', lobbyId)
-          // Refresh players list
-          const { players } = await getLobbyWithPlayers(lobbyId)
-          console.log('👥 REALTIME CALLBACK: Refreshed players after ready change:', players.length, 'players')
-          console.log('👥 REALTIME CALLBACK: Player ready statuses:', players.map(p => ({ id: p.user_id, ready: p.ready })))
+          // Refresh players list - server state is the source of truth
+          const { players: serverPlayers } = await getLobbyWithPlayers(lobbyId)
+          console.log('👥 REALTIME CALLBACK: Server players:', serverPlayers.map(p => ({ id: p.user_id, ready: p.ready })))
 
-          console.log('👥 REALTIME CALLBACK: About to update store with players')
-          lobbyStore.updatePlayers(players)
+          // Preserve optimistic updates for the current user
+          const currentUserId = authStore.getState().user?.id
+          const currentPlayers = lobbyStore.players
+
+          const reconciledPlayers = serverPlayers.map(serverPlayer => {
+            // For other players, use server state
+            if (serverPlayer.user_id !== currentUserId) {
+              return serverPlayer
+            }
+
+            // For current user, check if we have a more recent optimistic update
+            const currentPlayer = currentPlayers.find(cp => cp.user_id === currentUserId)
+            if (currentPlayer) {
+              console.log('👥 REALTIME CALLBACK: Current user optimistic state - server:', serverPlayer.ready, 'local:', currentPlayer.ready)
+              // If local state differs from server and we're in an optimistic update scenario,
+              // prefer the local state (it will be corrected when database syncs)
+              return {
+                ...serverPlayer,
+                ready: currentPlayer.ready // Preserve optimistic update
+              }
+            }
+
+            return serverPlayer
+          })
+
+          console.log('👥 REALTIME CALLBACK: Final reconciled players:', reconciledPlayers.map(p => ({ id: p.user_id, ready: p.ready })))
+
+          console.log('👥 REALTIME CALLBACK: About to update store with reconciled players')
+          lobbyStore.updatePlayers(reconciledPlayers)
           console.log('👥 REALTIME CALLBACK: Updated store after ready change - reactivity is automatic!')
         } catch (error) {
           console.error('👥 REALTIME CALLBACK: Error in onPlayerReady:', error)
