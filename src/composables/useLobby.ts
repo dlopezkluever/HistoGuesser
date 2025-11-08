@@ -195,18 +195,30 @@ export function useLobby() {
   }
 
   const startMultiplayerGame = async () => {
-    if (!lobbyStore.currentLobby || !authStore.getState().user) return
+    if (!lobbyStore.currentLobby || !authStore.getState().user) {
+      console.log('❌ startMultiplayerGame: Missing lobby or user')
+      return
+    }
+
+    console.log('🎮 startMultiplayerGame called for lobby:', lobbyStore.currentLobby.id)
 
     try {
+      console.log('⏳ Setting loading state for game start')
       lobbyStore.setLoading(true)
+      lobbyStore.setError(null)
+
+      console.log('🚀 Calling startGame API...')
       await startGame(lobbyStore.currentLobby.id, authStore.getState().user!.id)
-      // The realtime subscription will handle the status update
+      console.log('✅ startGame API completed - waiting for realtime status update')
+
+      // Don't set loading to false here - let the onGameStarted callback handle it
+      // The UI transition will happen when the realtime callback updates the lobby status
     } catch (error) {
+      console.error('❌ startMultiplayerGame failed:', error)
       const message = error instanceof Error ? error.message : 'Failed to start game'
       lobbyStore.setError(message)
-      throw error
-    } finally {
       lobbyStore.setLoading(false)
+      throw error
     }
   }
 
@@ -331,21 +343,45 @@ export function useLobby() {
       },
 
       onGameStarted: async () => {
-        // Get updated lobby status
-        const { lobby } = await getLobbyWithPlayers(lobbyId)
-        lobbyStore.updateLobbyStatus(lobby.status, lobby.current_round)
+        console.log('🎮 REALTIME CALLBACK: onGameStarted triggered for lobby:', lobbyId)
 
-        // Load figures for the game
-        const figures = []
-        for (const figureId of lobby.figure_ids) {
-          const figure = await getFigureById(figureId)
-          figures.push(figure)
-        }
+        try {
+          console.log('📊 Fetching updated lobby with players...')
+          const { lobby } = await getLobbyWithPlayers(lobbyId)
+          console.log('✅ Got updated lobby - status:', lobby.status, 'current_round:', lobby.current_round)
+
+          console.log('💾 Updating lobby status in store...')
+          lobbyStore.updateLobbyStatus(lobby.status, lobby.current_round)
+          console.log('✅ Lobby status updated to:', lobby.status)
+
+          console.log('🎯 Loading figures for game...')
+          const figures = []
+          for (const figureId of lobby.figure_ids) {
+            console.log('📖 Loading figure:', figureId)
+            const figure = await getFigureById(figureId)
+            figures.push(figure)
+          }
+          console.log('✅ Loaded', figures.length, 'figures')
+
+          console.log('💾 Setting figures in store...')
           lobbyStore.setFigures(figures)
 
-        // Start first round
-        if (figures.length > 0) {
-          lobbyStore.startRound(1, figures[0])
+          console.log('🎲 Starting first round...')
+          if (figures.length > 0) {
+            lobbyStore.startRound(1, figures[0])
+            console.log('✅ Started round 1 with figure:', figures[0].name)
+          } else {
+            console.error('❌ No figures loaded for game!')
+          }
+
+          console.log('🔄 Setting loading to false after game start')
+          lobbyStore.setLoading(false)
+
+          console.log('🎮 Game started successfully!')
+        } catch (error) {
+          console.error('❌ onGameStarted callback failed:', error)
+          lobbyStore.setError('Failed to start game')
+          lobbyStore.setLoading(false)
         }
       },
 

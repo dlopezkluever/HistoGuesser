@@ -74,6 +74,17 @@ export function subscribeLobby(
     }
   })
 
+  // Subscribe to broadcast events for game started (fallback)
+  channel.on('broadcast', { event: 'game_started' }, (payload) => {
+    console.log('📢 REALTIME: Game started via broadcast', payload.payload)
+    try {
+      callbacks.onGameStarted?.()
+      console.log('📢 REALTIME: onGameStarted callback called successfully')
+    } catch (error) {
+      console.error('📢 REALTIME: Error calling onGameStarted callback:', error)
+    }
+  })
+
   channel.on(
     'postgres_changes',
     {
@@ -97,15 +108,28 @@ export function subscribeLobby(
       filter: `id=eq.${lobbyId}`,
     },
     (payload) => {
+      console.log('🔄 REALTIME: Lobby updated via postgres_changes', {
+        old: { status: payload.old.status, round: payload.old.current_round },
+        new: { status: payload.new.status, round: payload.new.current_round }
+      })
+
       if (payload.new.status === 'in_progress' && payload.old.status === 'waiting') {
-        callbacks.onGameStarted?.()
+        console.log('🎮 REALTIME: Game started condition met, calling onGameStarted')
+        try {
+          callbacks.onGameStarted?.()
+          console.log('🎮 REALTIME: onGameStarted callback completed')
+        } catch (error) {
+          console.error('🎮 REALTIME: Error in onGameStarted callback:', error)
+        }
       }
 
       if (payload.new.current_round !== payload.old.current_round) {
+        console.log('🎲 REALTIME: Round changed, calling onRoundStarted')
         callbacks.onRoundStarted?.(payload.new.current_round)
       }
 
       if (payload.new.status === 'finished') {
+        console.log('🏁 REALTIME: Game finished, calling onGameEnded')
         callbacks.onGameEnded?.(null)
       }
     }

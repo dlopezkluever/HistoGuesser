@@ -623,6 +623,16 @@ export async function startGame(lobbyId: string, hostId: string): Promise<void> 
     .eq('id', lobbyId)
 
   if (startError) throw startError
+
+  // Broadcast game started event to all participants
+  const { broadcastLobbyEvent } = await import('./realtime')
+  try {
+    await broadcastLobbyEvent(lobbyId, 'game_started', { lobbyId, status: 'in_progress', current_round: 1 })
+    console.log('📢 Broadcasted game started event for lobby:', lobbyId)
+  } catch (broadcastError) {
+    console.warn('⚠️ Failed to broadcast game started event:', broadcastError)
+    // Don't fail the game start if broadcast fails
+  }
 }
 
 /**

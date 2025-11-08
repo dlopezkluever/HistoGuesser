@@ -71,6 +71,13 @@ const handleToggleReady = () => {
 }
 
 const handleStartGame = () => {
+  console.log('🎮 LobbyWaitingRoom: Start Game button clicked')
+  console.log('🎮 LobbyWaitingRoom: Current state:', {
+    isHost: isHost.value,
+    allPlayersReady: allPlayersReady.value,
+    canStartGame: canStartGame.value,
+    players: props.players
+  })
   startMultiplayerGame()
 }
 

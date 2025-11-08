@@ -43,12 +43,20 @@ console.log('🎯 MultiplayerView mounted, initial state:', {
 // Watch for store changes to debug reactivity
 watch([lobby, player, players], ([newLobby, newPlayer, newPlayers]) => {
   console.log('🎯 MultiplayerView store changed:', {
-    lobby: newLobby,
-    player: newPlayer,
+    lobby: newLobby ? { id: newLobby.id, status: newLobby.status, round: newLobby.current_round } : null,
+    player: newPlayer ? { id: newPlayer.id, ready: newPlayer.ready } : null,
     playersCount: newPlayers?.length || 0,
     players: newPlayers?.map(p => ({ id: p.id, user_id: p.user_id, ready: p.ready, username: p.username }))
   })
 }, { deep: true, immediate: true })
+
+// Specifically watch for lobby status changes
+watch(() => lobby.value?.status, (newStatus, oldStatus) => {
+  console.log('🎯 MultiplayerView: Lobby status changed:', oldStatus, '→', newStatus)
+  if (newStatus === 'in_progress') {
+    console.log('🎮 MultiplayerView: Lobby status is now in_progress - should show game screen')
+  }
+}, { immediate: true })
 
 // Debug button click handler
 const onCreateClick = () => {
