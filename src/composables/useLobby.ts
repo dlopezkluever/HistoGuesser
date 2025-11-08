@@ -19,7 +19,14 @@ export function useLobby() {
   console.log('🏗️ useLobby composable called')
 
   // Use Pinia store directly - native Vue reactivity!
+  console.log('🏪 Initializing lobbyStore...')
   const lobbyStore = useLobbyStore()
+  console.log('🏪 lobbyStore initialized:', {
+    isLoading: lobbyStore.isLoading,
+    currentLobby: lobbyStore.currentLobby,
+    hasSetLoading: typeof lobbyStore.setLoading === 'function'
+  })
+
   const realtimeChannel = ref<RealtimeChannel | null>(null)
 
   // Cleanup realtime subscription on unmount
@@ -47,7 +54,9 @@ export function useLobby() {
       lobbyStore.setError(null)
 
       console.log('🏗️ Creating lobby for user:', user.id, user.username)
+      console.log('🔄 About to call createLobby...')
       const lobby = await createLobby(user.id, user.username || 'Anonymous')
+      console.log('✅ createLobby returned:', lobby)
 
       // Get the lobby with players (just the host)
       const { lobby: lobbyWithPlayers, players } = await getLobbyWithPlayers(lobby.id)
@@ -322,7 +331,7 @@ export function useLobby() {
 
   console.log('📤 useLobby returning with Pinia reactive state - automatic reactivity!')
 
-  return {
+  const returnObject = {
     // State (directly from Pinia store - automatically reactive!)
     lobby: lobbyStore.currentLobby,
     player: lobbyStore.currentPlayer,
@@ -349,4 +358,12 @@ export function useLobby() {
     leaveCurrentLobby,
     cleanup
   }
+
+  console.log('📤 Return object created:', {
+    hasIsLoading: 'isLoading' in returnObject,
+    isLoadingValue: returnObject.isLoading,
+    hasCreateNewLobby: typeof returnObject.createNewLobby === 'function'
+  })
+
+  return returnObject
 }

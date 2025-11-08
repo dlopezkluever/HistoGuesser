@@ -2,16 +2,27 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '@/composables/useLobby'
+import { useLobbyStore } from '@/stores/lobbyStore'
+import { storeToRefs } from 'pinia'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 
-const { createNewLobby, joinExistingLobby, isLoading } = useLobby()
+// Use Pinia store directly with storeToRefs for proper reactivity
+const lobbyStore = useLobbyStore()
+const { isLoading } = storeToRefs(lobbyStore)
+
+// Get actions from composable
+const { createNewLobby, joinExistingLobby } = useLobby()
 const router = useRouter()
 
 onMounted(() => {
   console.log('🎨 LobbyCreateJoin component mounted!')
-  console.log('🔍 LobbyCreateJoin props:', { isLoading: isLoading.value })
+  console.log('🔍 LobbyCreateJoin reactive values:', {
+    isLoading: isLoading.value,
+    hasCreateNewLobby: typeof createNewLobby === 'function',
+    hasJoinExistingLobby: typeof joinExistingLobby === 'function'
+  })
 })
 
 const roomCode = ref('')

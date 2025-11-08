@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import { useLobby } from '@/composables/useLobby'
 import Button from '@/components/ui/Button.vue'
@@ -13,6 +13,20 @@ interface Props {
 
 const props = defineProps<Props>()
 const { toggleReady, startMultiplayerGame, leaveCurrentLobby, isLoading } = useLobby()
+
+// Debug prop changes
+console.log('🎯 LobbyWaitingRoom props:', {
+  playersCount: props.players.length,
+  players: props.players.map(p => ({ user_id: p.user_id, ready: p.ready, username: p.username }))
+})
+
+// Watch for player changes
+watch(() => props.players, (newPlayers, oldPlayers) => {
+  console.log('🎯 LobbyWaitingRoom players changed:', {
+    old: oldPlayers?.map(p => ({ user_id: p.user_id, ready: p.ready })),
+    new: newPlayers?.map(p => ({ user_id: p.user_id, ready: p.ready }))
+  })
+}, { deep: true })
 
 const isHost = computed(() =>
   props.currentPlayer?.user_id === props.lobby.host_id

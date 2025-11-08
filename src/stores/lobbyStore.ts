@@ -33,8 +33,12 @@ export const useLobbyStore = defineStore('lobby', () => {
 
   const updatePlayers = (newPlayers: LobbyPlayer[]) => {
     console.log('🏪 STORE: updatePlayers called with', newPlayers.length, 'players')
-    players.value = newPlayers
-    console.log('🏪 STORE: updatePlayers completed')
+    console.log('🏪 STORE: Current players:', players.value.map(p => ({ id: p.id, user_id: p.user_id, ready: p.ready })))
+    console.log('🏪 STORE: New players:', newPlayers.map(p => ({ id: p.id, user_id: p.user_id, ready: p.ready })))
+
+    // Create a fresh array reference to ensure reactivity
+    players.value = [...newPlayers]
+    console.log('🏪 STORE: updatePlayers completed - fresh array assigned')
   }
 
   const updateLobbyStatus = (status: Lobby['status'], roundNumber: number) => {
