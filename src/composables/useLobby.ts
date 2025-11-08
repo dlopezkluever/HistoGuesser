@@ -9,7 +9,8 @@ import {
   submitMultiplayerGuess,
   getRoundSubmissions,
   updatePlayerReady,
-  leaveLobby
+  leaveLobby,
+  leaveAllLobbies
 } from '@/lib/supabase/queries'
 import { subscribeLobby, unsubscribeLobby } from '@/lib/supabase/realtime'
 import { getFigureById } from '@/lib/supabase/queries'
@@ -52,6 +53,15 @@ export function useLobby() {
       console.log('⏳ Setting loading state...')
       lobbyStore.setLoading(true)
       lobbyStore.setError(null)
+
+      // Clean up any existing lobbies for this user
+      console.log('🧹 Leaving any existing lobbies before creating new one')
+      try {
+        await leaveAllLobbies(user.id)
+      } catch (cleanupError) {
+        console.warn('⚠️ Failed to cleanup existing lobbies:', cleanupError)
+        // Don't fail the creation if cleanup fails
+      }
 
       console.log('🏗️ Creating lobby for user:', user.id, user.username)
       console.log('🔄 About to call createLobby...')
@@ -102,6 +112,15 @@ export function useLobby() {
     // Clean up any existing lobby state before joining
     console.log('🧹 Cleaning up any existing lobby state before joining')
     cleanup()
+
+    // Also leave any existing lobbies in the database
+    console.log('🏠 Leaving any existing lobbies in database before joining')
+    try {
+      await leaveAllLobbies(authStore.getState().user!.id)
+    } catch (cleanupError) {
+      console.warn('⚠️ Failed to cleanup existing lobbies:', cleanupError)
+      // Don't fail the join if cleanup fails
+    }
 
     try {
       console.log('⏳ Setting loading state to true')
@@ -235,6 +254,14 @@ export function useLobby() {
 
   const setupRealtimeSubscription = (lobbyId: string) => {
     console.log('🔌 Setting up realtime subscription for lobby:', lobbyId)
+
+    // Clean up any existing subscription first
+    if (realtimeChannel.value) {
+      console.log('🧹 Cleaning up existing realtime subscription before setting up new one')
+      unsubscribeLobby(realtimeChannel.value)
+      realtimeChannel.value = null
+    }
+
     try {
       realtimeChannel.value = subscribeLobby(lobbyId, {
       onPlayerJoined: async (_player) => {

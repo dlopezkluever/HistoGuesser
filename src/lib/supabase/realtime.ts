@@ -125,16 +125,24 @@ export function subscribeLobby(
     }
   )
 
-  channel.subscribe((status) => {
-    console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status)
+  channel.subscribe((status, err) => {
+    console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status, err ? `Error: ${err}` : '')
+
     if (status === 'SUBSCRIBED') {
       console.log(`✅ Successfully subscribed to lobby:${lobbyId}`)
     } else if (status === 'CHANNEL_ERROR') {
-      console.error(`❌ Channel error for lobby:${lobbyId}`)
+      console.error(`❌ Channel error for lobby:${lobbyId}:`, err)
+      // Try to resubscribe after a delay
+      setTimeout(() => {
+        console.log(`🔄 Attempting to resubscribe to lobby:${lobbyId}`)
+        channel.subscribe((retryStatus, retryErr) => {
+          console.log(`📡 Retry subscription status for lobby:${lobbyId}:`, retryStatus, retryErr ? `Error: ${retryErr}` : '')
+        })
+      }, 2000)
     } else if (status === 'TIMED_OUT') {
-      console.error(`⏰ Channel timed out for lobby:${lobbyId}`)
+      console.error(`⏰ Channel timed out for lobby:${lobbyId}:`, err)
     } else if (status === 'CLOSED') {
-      console.log(`🔌 Channel closed for lobby:${lobbyId}`)
+      console.log(`🔌 Channel closed for lobby:${lobbyId}:`, err)
     }
   })
 
