@@ -5,7 +5,7 @@ import LobbyGameplay from '@/components/lobby/LobbyGameplay.vue'
 import LobbyResults from '@/components/lobby/LobbyResults.vue'
 import { useLobby } from '@/composables/useLobby'
 import { useLobbyStore } from '@/stores/lobbyStore'
-import { watch } from 'vue'
+import { watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 
 // Use Pinia store directly with storeToRefs for proper reactivity
@@ -24,6 +24,13 @@ const {
 
 // Get actions from composable
 const { createNewLobby, joinExistingLobby, toggleReady, startMultiplayerGame, submitGuess, leaveCurrentLobby } = useLobby()
+
+// Clean up any existing lobby state when entering multiplayer
+onMounted(() => {
+  console.log('🎯 MultiplayerView mounted - cleaning up any existing lobby state')
+  // Reset lobby store to ensure clean state
+  lobbyStore.reset()
+})
 
 // Debug what we actually got
 console.log('🔍 lobbyStore reactive refs:', { lobby, player, isLoading })

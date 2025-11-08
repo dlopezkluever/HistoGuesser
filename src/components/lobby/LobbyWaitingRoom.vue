@@ -131,9 +131,8 @@ const handleLeaveLobby = () => {
       <!-- Action Buttons -->
       <Card>
         <div class="flex gap-3">
-          <!-- Ready Button (for non-host players) -->
+          <!-- Ready Button (for all players) -->
           <Button
-            v-if="!isHost"
             @click="handleToggleReady"
             :variant="currentPlayer?.ready ? 'secondary' : 'primary'"
             class="flex-1"
@@ -142,7 +141,7 @@ const handleLeaveLobby = () => {
             {{ currentPlayer?.ready ? 'Not Ready' : 'Ready' }}
           </Button>
 
-          <!-- Start Game Button (for host) -->
+          <!-- Start Game Button (for host only) -->
           <Button
             v-if="isHost"
             @click="handleStartGame"
