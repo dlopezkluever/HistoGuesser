@@ -207,12 +207,50 @@ export function useLobby() {
       lobbyStore.setLoading(true)
       lobbyStore.setError(null)
 
-      console.log('🚀 Calling startGame API...')
-      await startGame(lobbyStore.currentLobby.id, authStore.getState().user!.id)
-      console.log('✅ startGame API completed - waiting for realtime status update')
+  console.log('🚀 Calling startGame API...')
+  await startGame(lobbyStore.currentLobby.id, authStore.getState().user!.id)
+  console.log('✅ startGame API completed - game started successfully!')
+  console.log('⏳ Waiting for realtime status update to transition UI...')
 
-      // Don't set loading to false here - let the onGameStarted callback handle it
-      // The UI transition will happen when the realtime callback updates the lobby status
+  // Set a timeout in case realtime doesn't work - force transition after 5 seconds
+  setTimeout(() => {
+    if (lobbyStore.isLoading) {
+      console.warn('⏰ Realtime transition timeout - forcing game start manually')
+      // Manually trigger game start if realtime failed
+      try {
+        const lobbyId = lobbyStore.currentLobby?.id
+        if (lobbyId) {
+          // Fetch current lobby state and start game manually
+          getLobbyWithPlayers(lobbyId).then(({ lobby, players }) => {
+            console.log('🔄 Fallback: Manually updating lobby status to in_progress')
+            lobbyStore.updateLobbyStatus('in_progress', 1)
+            // Load figures and start round
+            const figurePromises = lobby.figure_ids.map(id => getFigureById(id))
+            Promise.all(figurePromises).then(figures => {
+              lobbyStore.setFigures(figures)
+              if (figures.length > 0) {
+                lobbyStore.startRound(1, figures[0])
+              }
+              lobbyStore.setLoading(false)
+              console.log('✅ Fallback game start completed')
+            }).catch(error => {
+              console.error('❌ Fallback figure loading failed:', error)
+              lobbyStore.setLoading(false)
+            })
+          }).catch(error => {
+            console.error('❌ Fallback lobby fetch failed:', error)
+            lobbyStore.setLoading(false)
+          })
+        }
+      } catch (error) {
+        console.error('❌ Fallback game start failed:', error)
+        lobbyStore.setLoading(false)
+      }
+    }
+  }, 5000)
+
+  // Don't set loading to false here - let the onGameStarted callback handle it
+  // The UI transition will happen when the realtime callback updates the lobby status
     } catch (error) {
       console.error('❌ startMultiplayerGame failed:', error)
       const message = error instanceof Error ? error.message : 'Failed to start game'

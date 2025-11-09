@@ -613,6 +613,8 @@ export async function startGame(lobbyId: string, hostId: string): Promise<void> 
     throw new Error('All players must be ready before starting')
   }
 
+  console.log('🎮 Updating lobby status to in_progress...')
+
   // Start the game
   const { error: startError } = await supabaseUntyped
     .from('lobbies')
@@ -622,16 +624,26 @@ export async function startGame(lobbyId: string, hostId: string): Promise<void> 
     })
     .eq('id', lobbyId)
 
-  if (startError) throw startError
+  if (startError) {
+    console.error('❌ Failed to update lobby status:', startError)
+    throw startError
+  }
 
-  // Broadcast game started event to all participants
+  console.log('✅ Lobby status updated successfully')
+
+  // Broadcast game started event to all participants - this is the primary mechanism
   const { broadcastLobbyEvent } = await import('./realtime')
   try {
-    await broadcastLobbyEvent(lobbyId, 'game_started', { lobbyId, status: 'in_progress', current_round: 1 })
+    await broadcastLobbyEvent(lobbyId, 'game_started', {
+      lobbyId,
+      status: 'in_progress',
+      current_round: 1,
+      timestamp: new Date().toISOString()
+    })
     console.log('📢 Broadcasted game started event for lobby:', lobbyId)
   } catch (broadcastError) {
     console.warn('⚠️ Failed to broadcast game started event:', broadcastError)
-    // Don't fail the game start if broadcast fails
+    // Don't fail the game start if broadcast fails - postgres_changes might still work
   }
 }
 

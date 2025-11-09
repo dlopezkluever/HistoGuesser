@@ -74,14 +74,15 @@ export function subscribeLobby(
     }
   })
 
-  // Subscribe to broadcast events for game started (fallback)
+  // Subscribe to broadcast events for game started (primary mechanism)
   channel.on('broadcast', { event: 'game_started' }, (payload) => {
     console.log('📢 REALTIME: Game started via broadcast', payload.payload)
+    console.log('🎮 REALTIME: Game started broadcast received - calling onGameStarted')
     try {
       callbacks.onGameStarted?.()
-      console.log('📢 REALTIME: onGameStarted callback called successfully')
+      console.log('🎮 REALTIME: onGameStarted callback completed successfully')
     } catch (error) {
-      console.error('📢 REALTIME: Error calling onGameStarted callback:', error)
+      console.error('🎮 REALTIME: Error calling onGameStarted callback:', error)
     }
   })
 
