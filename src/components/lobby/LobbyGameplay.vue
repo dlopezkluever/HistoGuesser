@@ -35,6 +35,7 @@ const guessedLon = ref<number | null>(null)
 const guessedYear = ref<number>(0) // Default to year 0
 const hasSubmitted = ref(false)
 const showReveal = ref(false)
+const revealedFigure = ref<Figure | null>(null) // Figure for the reveal phase
 
 // Timer state
 const timeRemaining = ref(45)
@@ -166,7 +167,7 @@ const handleSubmitGuess = async () => {
     })
 
     // Submit to server using validated numeric values
-    await submitGuess(
+    const submission = await submitGuess(
       guessedName.value,
       lat,
       lon,
@@ -175,6 +176,11 @@ const handleSubmitGuess = async () => {
     )
 
     hasSubmitted.value = true
+
+    // Immediately add our own submission to local state for UI updates
+    // The broadcast will be received by other players, but we need to update our own UI immediately
+    console.log('🎯 Adding own submission to local state:', submission)
+    // We'll let the broadcast callback handle adding this submission to roundSubmissions
   } catch (error) {
     console.error('Failed to submit guess:', error)
   }
@@ -194,6 +200,8 @@ const handleMapClick = (coordinates: Coordinates) => {
 watch(allPlayersSubmitted, (isComplete) => {
   if (isComplete && !showReveal.value) {
     console.log('🎯 All players submitted - showing reveal phase')
+    console.log('🎯 Current figure for reveal:', currentFigure.value?.name)
+    revealedFigure.value = currentFigure.value // Preserve the figure for reveal
     showReveal.value = true
   }
 })
@@ -202,6 +210,16 @@ watch(allPlayersSubmitted, (isComplete) => {
 const advanceRound = () => {
   console.log('🎯 advanceRound called - emitting to parent for round progression')
   emit('advanceRound')
+
+  // Reset for next round
+  console.log('🔄 Resetting UI state for next round')
+  hasSubmitted.value = false
+  guessedName.value = ''
+  guessedLat.value = null
+  guessedLon.value = null
+  guessedYear.value = 0
+  showReveal.value = false
+  revealedFigure.value = null
 }
 </script>
 
@@ -293,8 +311,8 @@ const advanceRound = () => {
 
       <!-- Reveal Phase -->
       <RevealPhase
-        v-else-if="showReveal && currentFigure"
-        :figure="currentFigure"
+        v-else-if="showReveal && revealedFigure"
+        :figure="revealedFigure"
         :is-multiplayer="true"
         :round-submissions="roundSubmissions"
         :players="players"

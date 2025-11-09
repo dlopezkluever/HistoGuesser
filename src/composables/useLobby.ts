@@ -275,7 +275,7 @@ export function useLobby() {
       ? (Date.now() - lobbyStore.roundStartTime) / 1000
       : 0
 
-    await submitMultiplayerGuess(
+    const submission = await submitMultiplayerGuess(
       lobbyStore.currentLobby.id,
       lobbyStore.currentPlayer.user_id,
       lobbyStore.currentRound,
@@ -287,6 +287,18 @@ export function useLobby() {
       submissionTime,
       score
     )
+
+    // Immediately add our own submission to local state for UI updates
+    console.log('🎯 Adding own submission to local roundSubmissions:', submission.id)
+    const currentSubmissions = lobbyStore.roundSubmissions || []
+    lobbyStore.roundSubmissions = [...currentSubmissions, submission]
+
+    // Check if all players have submitted after adding our own
+    if (lobbyStore.roundSubmissions.length >= lobbyStore.players.length) {
+      console.log('🎯 All players submitted (including self) - reveal phase should start in UI')
+    }
+
+    return submission
   }
 
   const leaveCurrentLobby = async () => {
@@ -465,15 +477,32 @@ export function useLobby() {
       onSubmissionReceived: async (_submission) => {
         console.log('📨 Submission received:', _submission)
 
-        // Always get fresh submissions for this round to update the counter
-        const submissions = await getRoundSubmissions(lobbyId, lobbyStore.currentRound)
-        console.log('📊 Updated submissions:', submissions.length, 'players:', lobbyStore.players.length)
+        // Get current submissions to check if we already have this one
+        let currentSubmissions = lobbyStore.roundSubmissions || []
+
+        // Check if we already have this submission (avoid duplicates)
+        const existingIndex = currentSubmissions.findIndex(sub => sub.id === _submission.id)
+        if (existingIndex === -1) {
+          // Check if we already have a submission from this user
+          const userSubmissionIndex = currentSubmissions.findIndex(sub => sub.user_id === _submission.user_id)
+          if (userSubmissionIndex === -1) {
+            // Add the new submission
+            currentSubmissions = [...currentSubmissions, _submission]
+            console.log('📊 Added new submission from user, total now:', currentSubmissions.length, 'players:', lobbyStore.players.length)
+          } else {
+            // Update existing submission from this user
+            console.log('📊 Updating existing submission from user')
+            currentSubmissions[userSubmissionIndex] = _submission
+          }
+        } else {
+          console.log('📊 Submission already exists, skipping...')
+        }
 
         // Update round submissions for real-time counter display
-        lobbyStore.roundSubmissions = submissions
+        lobbyStore.roundSubmissions = currentSubmissions
 
         // If all players have submitted, trigger reveal phase (UI handles the rest)
-        if (submissions.length >= lobbyStore.players.length) {
+        if (currentSubmissions.length >= lobbyStore.players.length) {
           console.log('🎯 All players submitted - reveal phase should start in UI')
           // Don't end the round here - let the UI handle reveal phase and round progression
           // The LobbyGameplay component will call endRound after reveal phase completes

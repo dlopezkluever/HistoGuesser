@@ -355,3 +355,52 @@ Test Results Expected:
 ✅ Game completes after 10 rounds
 
 **Note: for the review screen, we really want the same visual components for the score visually that the free play and daily challenge show, so please go through and compare the the visual components of the score review of free play to make the multiplayer look the same**
+
+----------------------------------------------
+ Round Progression Issues - DIAGNOSED & FIXED
+🔍 Root Causes Identified
+1. Wrong Figure in Reveal Phase
+Creator's screen: Showed Julius Caesar (Round 2) instead of Napoleon (Round 1)
+Cause: currentFigure updated to next round before reveal phase rendered
+Impact: Players saw wrong historical details and round counter showed "Round 2/10"
+2. Joiner's Reveal Phase Never Triggered
+Joiner's screen: Timer stopped but stayed on round 1 screen
+Cause: roundSubmissions only had 1 item (timing issue with DB queries)
+Impact: Only creator progressed to reveal phase
+3. Submission Accumulation Broken
+Issue: getRoundSubmissions() called immediately after broadcast, but DB hadn't updated yet
+Result: Inconsistent submission counts across players
+🛠️ Complete Fixes Implemented
+1. Fixed Reveal Phase Figure Data
+// Added revealedFigure ref to preserve current round's figureconst revealedFigure = ref<Figure | null>(null)// Set when reveal phase startswatch(allPlayersSubmitted, (isComplete) => {  if (isComplete && !showReveal.value) {    revealedFigure.value = currentFigure.value // Preserve for reveal    showReveal.value = true  }})// Use revealedFigure in RevealPhase component<RevealPhase :figure="revealedFigure" ... />
+2. Fixed Submission Accumulation
+// Accumulate submissions from broadcasts instead of DB queriesonSubmissionReceived: async (_submission) => {  let currentSubmissions = lobbyStore.roundSubmissions || []    // Avoid duplicates and accumulate  if (!currentSubmissions.find(sub => sub.id === _submission.id)) {    currentSubmissions = [...currentSubmissions, _submission]  }    lobbyStore.roundSubmissions = currentSubmissions    // Trigger reveal when all submitted  if (currentSubmissions.length >= lobbyStore.players.length) {    // Reveal phase logic  }}
+3. Proper Round Advancement Flow
+// handleAdvanceRound in MultiplayerView.vueconst handleAdvanceRound = async () => {  // 1. End current round & update scores  lobbyStore.endRound(lobbyStore.roundSubmissions)    // 2. Update player scores  scoreUpdates.forEach(([userId, score]) => {    lobbyStore.updatePlayerScore(userId, score)  })    // 3. Start next round OR end game  if (nextRound > 10) {    lobbyStore.updateLobbyStatus('finished', 10) // Game over  } else {    lobbyStore.startRound(nextRound, nextFigure) // Next round  }}
+🎯 Expected Behavior After Fixes
+Creator's Screen:
+✅ Reveal phase shows correct figure (Napoleon for Round 1)
+✅ Round counter shows "Round 1/10" during reveal
+✅ Scores displayed correctly
+✅ Advances to Round 2 after 8 seconds
+Joiner's Screen:
+✅ Reveal phase triggers when both submit
+✅ Shows correct figure and round data
+✅ Advances with creator to Round 2
+Both Players:
+✅ Consistent submission counts (2/2)
+✅ Proper round progression (1→2→3...)
+✅ Game ends after 10 rounds with results screen
+📊 Architecture Improvements
+Figure Preservation: revealedFigure ensures reveal phase shows correct data
+Submission Accumulation: Broadcast-based accumulation avoids DB timing issues
+Clean State Management: Round progression properly coordinated between UI and store
+Reliable Sync: Both players see consistent game state
+The reveal phase should now show the correct historical figure and round data, and both players should progress together through rounds! 🚀
+Test Results Expected:
+✅ Reveal shows current round's figure (not next round's)
+✅ Both players see reveal phase simultaneously
+✅ Round counter accurate during reveal phase
+✅ Smooth progression to next round
+✅ Scores update correctly
+Would you like me to implement any additional features, or shall we test the round progression fixes?
