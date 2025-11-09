@@ -290,15 +290,42 @@ export function useLobby() {
   }
 
   const leaveCurrentLobby = async () => {
-    if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer) return
+    console.log('🚪 leaveCurrentLobby called - starting leave process')
+    console.log('Current state:', {
+      lobby: lobbyStore.currentLobby,
+      player: lobbyStore.currentPlayer,
+      hasLobby: !!lobbyStore.currentLobby,
+      hasPlayer: !!lobbyStore.currentPlayer
+    })
+
+    if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer) {
+      console.warn('🚪 leaveCurrentLobby: Missing lobby or player - cannot leave', {
+        lobby: !!lobbyStore.currentLobby,
+        player: !!lobbyStore.currentPlayer
+      })
+      return
+    }
 
     try {
+      console.log('🔄 leaveCurrentLobby: Calling leaveLobby API...', {
+        lobbyId: lobbyStore.currentLobby.id,
+        userId: lobbyStore.currentPlayer.user_id
+      })
+
       await leaveLobby(lobbyStore.currentLobby.id, lobbyStore.currentPlayer.user_id)
+
+      console.log('✅ leaveCurrentLobby: leaveLobby API call successful')
+
+      console.log('🧹 leaveCurrentLobby: Starting local cleanup...')
       cleanup()
+
+      console.log('✅ leaveCurrentLobby: Leave process completed successfully')
     } catch (error) {
-      console.error('Failed to leave lobby:', error)
-      // Still cleanup locally
+      console.error('❌ leaveCurrentLobby: Failed to leave lobby:', error)
+      console.log('🧹 leaveCurrentLobby: Attempting local cleanup despite error...')
+      // Still cleanup locally even if API call failed
       cleanup()
+      console.log('✅ leaveCurrentLobby: Local cleanup completed after error')
     }
   }
 

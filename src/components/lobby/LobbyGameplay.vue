@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
-import type { Figure } from '@/types/figure'
+import type { Figure, Coordinates } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
 // Removed lobbyStore import - now getting data from props
 import FigureCarousel from '@/components/game/FigureCarousel.vue'
@@ -104,20 +104,42 @@ const handleSubmitGuess = async () => {
     return
   }
 
+  // Additional client-side validation for data types
+  const lat = Number(guessedLat.value)
+  const lon = Number(guessedLon.value)
+  const year = Number(guessedYear.value)
+
+  if (isNaN(lat) || isNaN(lon) || isNaN(year)) {
+    console.error('❌ Invalid data types in submission:', {
+      lat: { value: guessedLat.value, type: typeof guessedLat.value, isNaN: isNaN(lat) },
+      lon: { value: guessedLon.value, type: typeof guessedLon.value, isNaN: isNaN(lon) },
+      year: { value: guessedYear.value, type: typeof guessedYear.value, isNaN: isNaN(year) }
+    })
+    return
+  }
+
+  // Validate coordinate ranges
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    console.error('❌ Invalid coordinate ranges:', { lat, lon })
+    return
+  }
+
+  console.log('✅ Client-side validation passed:', { lat, lon, year })
+
   try {
     console.log('✅ Validation passed - proceeding with submission')
     stopTimer()
 
-    // Calculate scores
+    // Calculate scores using validated numeric values
     const spatialResult = calculateSpatialScore(
-      guessedLat.value!,
-      guessedLon.value!,
+      lat,
+      lon,
       currentFigure.value.lat,
       currentFigure.value.lon
     )
 
     const temporalResult = calculateTemporalScore(
-      guessedYear.value!,
+      year,
       currentFigure.value.birth_year
     )
 
@@ -131,12 +153,20 @@ const handleSubmitGuess = async () => {
 
     const totalScore = spatialResult.score + temporalResult.score + nameScore + speedBonus
 
-    // Submit to server
+    console.log('📊 Calculated scores:', {
+      spatial: spatialResult.score,
+      temporal: temporalResult.score,
+      name: nameScore,
+      speed: speedBonus,
+      total: totalScore
+    })
+
+    // Submit to server using validated numeric values
     await submitGuess(
       guessedName.value,
-      guessedLat.value!,
-      guessedLon.value!,
-      guessedYear.value,
+      lat,
+      lon,
+      year,
       totalScore
     )
 
@@ -147,11 +177,11 @@ const handleSubmitGuess = async () => {
 }
 
 // Handle map click
-const handleMapClick = (lat: number, lon: number) => {
-  console.log('🗺️ Map clicked:', lat, lon, 'hasSubmitted:', hasSubmitted.value)
+const handleMapClick = (coordinates: Coordinates) => {
+  console.log('🗺️ Map clicked:', coordinates, 'hasSubmitted:', hasSubmitted.value)
   if (hasSubmitted.value) return
-  guessedLat.value = lat
-  guessedLon.value = lon
+  guessedLat.value = coordinates.lat
+  guessedLon.value = coordinates.lon
   console.log('📍 Set guessedLat:', guessedLat.value, 'guessedLon:', guessedLon.value)
 }
 

@@ -82,7 +82,19 @@ const handleStartGame = () => {
 }
 
 const handleLeaveLobby = () => {
-  leaveCurrentLobby()
+  console.log('🚪 LobbyWaitingRoom: Leave Lobby button clicked')
+  console.log('🚪 LobbyWaitingRoom: Current state before leave:', {
+    lobby: props.lobby,
+    currentPlayer: props.currentPlayer,
+    playersCount: props.players.length
+  })
+
+  try {
+    leaveCurrentLobby()
+    console.log('🚪 LobbyWaitingRoom: leaveCurrentLobby function called successfully')
+  } catch (error) {
+    console.error('🚪 LobbyWaitingRoom: Error calling leaveCurrentLobby:', error)
+  }
 }
 </script>
 
