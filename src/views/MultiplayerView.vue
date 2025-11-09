@@ -69,6 +69,59 @@ const onCreateClick = () => {
   })
 }
 
+// Handle round advancement from LobbyGameplay
+const handleAdvanceRound = async () => {
+  console.log('🎯 handleAdvanceRound called in MultiplayerView')
+
+  if (!lobby.value || !lobbyStore.roundSubmissions.length) {
+    console.warn('⚠️ handleAdvanceRound: Missing lobby or submissions')
+    return
+  }
+
+  try {
+    // End the current round
+    console.log('🏁 Ending current round and updating scores')
+    lobbyStore.endRound(lobbyStore.roundSubmissions)
+
+    // Update player scores based on submissions
+    const scoreUpdates = lobbyStore.roundSubmissions.reduce((acc, sub) => {
+      acc[sub.user_id] = (acc[sub.user_id] || 0) + sub.score
+      return acc
+    }, {} as Record<string, number>)
+
+    Object.entries(scoreUpdates).forEach(([userId, additionalScore]) => {
+      const currentScore = lobbyStore.players.find(p => p.user_id === userId)?.score || 0
+      lobbyStore.updatePlayerScore(userId, currentScore + additionalScore)
+    })
+
+    const nextRound = lobbyStore.currentRound + 1
+    console.log('🎲 Current round:', lobbyStore.currentRound, 'Next round would be:', nextRound)
+
+    if (nextRound > 10) {
+      // Game finished
+      console.log('🏆 Game completed! All 10 rounds finished')
+      lobbyStore.updateLobbyStatus('finished', 10)
+    } else {
+      // Start next round
+      console.log('🎯 Starting next round:', nextRound)
+      const nextFigure = lobbyStore.figures[nextRound - 1] // 0-indexed array
+
+      if (nextFigure) {
+        console.log('🎯 Starting round with figure:', nextFigure.name)
+        lobbyStore.startRound(nextRound, nextFigure)
+      } else {
+        console.error('❌ No figure found for round', nextRound)
+        // End game if we can't find the next figure
+        lobbyStore.updateLobbyStatus('finished', lobbyStore.currentRound)
+      }
+    }
+
+    console.log('✅ Round advancement completed')
+  } catch (error) {
+    console.error('❌ Error advancing round:', error)
+  }
+}
+
 // Debug function to manually test state
 const debugSetLobby = () => {
   console.log('🔧 Manually setting debug lobby...')
@@ -180,6 +233,7 @@ const debugSetLobby = () => {
             :current-round="currentRound || 0"
             :figures="figures || []"
             :round-submissions="roundSubmissions || []"
+            @advance-round="handleAdvanceRound"
           />
         </div>
 

@@ -314,3 +314,44 @@ Dual Strategy: Maximum reliability
 
 🎯 Next Critical Blocker: 3-Player Sync
 Similar issue - ready status updates may not trigger realtime events for all players. Need to apply same broadcast fallback pattern.
+
+-------------------------------------------------------------------------------
+
+🎯 Round Progression Issue - DIAGNOSED & FIXED
+🔍 Root Cause Identified
+The issue was in the onSubmissionReceived callback - it was prematurely ending rounds before the reveal phase could show:
+// BROKEN: This ended the round immediately when submissions were receivedif (submissions.length >= lobbyStore.players.length) {  lobbyStore.endRound(submissions) // ❌ This set isRoundActive = false}
+This caused:
+✅ Submissions work (broadcast system fixed)
+❌ isRoundActive set to false immediately
+❌ UI falls back to "unexpected state" instead of showing reveal phase
+❌ Creator shows "1/2 submitted" (UI doesn't update)
+🛠️ Complete Fix Implemented
+1. Fixed Premature Round Ending
+Removed endRound() call from onSubmissionReceived
+Now only updates roundSubmissions for UI counter display
+Lets reveal phase trigger naturally when allPlayersSubmitted becomes true
+2. Added Proper Round Progression Flow
+// NEW FLOW:All players submit → Reveal phase shows → @advance-round emitted → Parent handles progression
+3. Implemented Round Advancement Logic
+Added handleAdvanceRound() in MultiplayerView.vue:
+// 1. End current round & update scoreslobbyStore.endRound(submissions)// 2. Update player scores  Object.entries(scoreUpdates).forEach(([userId, score]) => {  lobbyStore.updatePlayerScore(userId, currentScore + score)})// 3. Start next round OR end gameif (nextRound > 10) {  lobbyStore.updateLobbyStatus('finished', 10) // Game over} else {  lobbyStore.startRound(nextRound, nextFigure) // Next round}
+🎯 Expected Behavior After Fix
+Test the same scenario again:
+Both players submit → Should see reveal phase immediately
+UI should show "2/2 submitted"
+After 8 seconds → Auto-advance to next round
+Round counter should increment (Round 1 → Round 2)
+After 10 rounds → Show final results screen
+📊 Architecture Improvements
+Clean separation: UI handles reveal phase, parent handles round logic
+Proper event flow: Child emits → Parent coordinates → Store updates
+Reliable progression: No premature state changes breaking reactivity
+The core issue was the round ending too early. Now the reveal phase should show properly and rounds should advance automatically! 🚀
+Test Results Expected:
+✅ Reveal phase appears after both submit
+✅ "2/2 submitted" shows correctly
+✅ Round advances after reveal timer
+✅ Game completes after 10 rounds
+
+**Note: for the review screen, we really want the same visual components for the score visually that the free play and daily challenge show, so please go through and compare the the visual components of the score review of free play to make the multiplayer look the same**

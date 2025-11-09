@@ -472,21 +472,11 @@ export function useLobby() {
         // Update round submissions for real-time counter display
         lobbyStore.roundSubmissions = submissions
 
-        // If all players have submitted, end the round
+        // If all players have submitted, trigger reveal phase (UI handles the rest)
         if (submissions.length >= lobbyStore.players.length) {
-          console.log('🎯 All players submitted - ending round')
-          lobbyStore.endRound(submissions)
-
-          // Update player scores
-          const scoreUpdates = submissions.reduce((acc, sub) => {
-            acc[sub.user_id] = (acc[sub.user_id] || 0) + sub.score
-            return acc
-          }, {} as Record<string, number>)
-
-          Object.entries(scoreUpdates).forEach(([userId, additionalScore]) => {
-            const currentScore = lobbyStore.players.find(p => p.user_id === userId)?.score || 0
-            lobbyStore.updatePlayerScore(userId, currentScore + additionalScore)
-          })
+          console.log('🎯 All players submitted - reveal phase should start in UI')
+          // Don't end the round here - let the UI handle reveal phase and round progression
+          // The LobbyGameplay component will call endRound after reveal phase completes
         }
       },
 

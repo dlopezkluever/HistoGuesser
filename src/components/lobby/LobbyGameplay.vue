@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import type { Figure, Coordinates } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
-// Removed lobbyStore import - now getting data from props
+import { useLobbyStore } from '@/stores/lobbyStore'
 import FigureCarousel from '@/components/game/FigureCarousel.vue'
 import InteractiveMap from '@/components/game/InteractiveMap.vue'
 import NameInput from '@/components/game/NameInput.vue'
@@ -11,6 +11,10 @@ import TimelineSlider from '@/components/game/TimelineSlider.vue'
 import RevealPhase from '@/components/game/RevealPhase.vue'
 import { calculateSpatialScore, calculateTemporalScore, calculateNameScore, calculateSpeedBonus } from '@/lib/scoring'
 import type { LobbySubmission } from '@/types/lobby'
+
+const emit = defineEmits<{
+  advanceRound: []
+}>()
 
 interface Props {
   lobby: Lobby
@@ -196,13 +200,8 @@ watch(allPlayersSubmitted, (isComplete) => {
 
 // Auto-advance after reveal
 const advanceRound = () => {
-  showReveal.value = false
-  // Reset for next round
-  hasSubmitted.value = false
-  guessedName.value = ''
-  guessedLat.value = null
-  guessedLon.value = null
-  guessedYear.value = 0
+  console.log('🎯 advanceRound called - emitting to parent for round progression')
+  emit('advanceRound')
 }
 </script>
 
