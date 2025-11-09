@@ -267,7 +267,14 @@ export function useLobby() {
     guessedYear: number,
     score: number
   ) => {
+    console.log('🎯 submitGuess called with:', { guessedName, guessedLat, guessedLon, guessedYear, score })
+
     if (!lobbyStore.currentLobby || !lobbyStore.currentPlayer || !lobbyStore.currentFigure) {
+      console.error('❌ Invalid game state:', {
+        lobby: !!lobbyStore.currentLobby,
+        player: !!lobbyStore.currentPlayer,
+        figure: !!lobbyStore.currentFigure
+      })
       throw new Error('Invalid game state')
     }
 
@@ -275,30 +282,40 @@ export function useLobby() {
       ? (Date.now() - lobbyStore.roundStartTime) / 1000
       : 0
 
-    const submission = await submitMultiplayerGuess(
-      lobbyStore.currentLobby.id,
-      lobbyStore.currentPlayer.user_id,
-      lobbyStore.currentRound,
-      lobbyStore.currentFigure.id,
-      guessedName,
-      guessedLat,
-      guessedLon,
-      guessedYear,
-      submissionTime,
-      score
-    )
+    console.log('🔄 Calling submitMultiplayerGuess...')
 
-    // Immediately add our own submission to local state for UI updates
-    console.log('🎯 Adding own submission to local roundSubmissions:', submission.id)
-    const currentSubmissions = lobbyStore.roundSubmissions || []
-    lobbyStore.roundSubmissions = [...currentSubmissions, submission]
+    try {
+      const submission = await submitMultiplayerGuess(
+        lobbyStore.currentLobby.id,
+        lobbyStore.currentPlayer.user_id,
+        lobbyStore.currentRound,
+        lobbyStore.currentFigure.id,
+        guessedName,
+        guessedLat,
+        guessedLon,
+        guessedYear,
+        submissionTime,
+        score
+      )
 
-    // Check if all players have submitted after adding our own
-    if (lobbyStore.roundSubmissions.length >= lobbyStore.players.length) {
-      console.log('🎯 All players submitted (including self) - reveal phase should start in UI')
+      console.log('✅ submitMultiplayerGuess returned:', submission)
+
+      // Immediately add our own submission to local state for UI updates
+      console.log('🎯 Adding own submission to local roundSubmissions:', submission.id)
+      const currentSubmissions = lobbyStore.roundSubmissions || []
+      lobbyStore.roundSubmissions = [...currentSubmissions, submission]
+      console.log('📊 roundSubmissions now has', lobbyStore.roundSubmissions.length, 'items')
+
+      // Check if all players have submitted after adding our own
+      if (lobbyStore.roundSubmissions.length >= lobbyStore.players.length) {
+        console.log('🎯 All players submitted (including self) - reveal phase should start in UI')
+      }
+
+      return submission
+    } catch (error) {
+      console.error('❌ submitMultiplayerGuess failed:', error)
+      throw error
     }
-
-    return submission
   }
 
   const leaveCurrentLobby = async () => {

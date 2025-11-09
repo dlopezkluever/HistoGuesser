@@ -404,3 +404,42 @@ Test Results Expected:
 ✅ Smooth progression to next round
 ✅ Scores update correctly
 Would you like me to implement any additional features, or shall we test the round progression fixes?
+--------
+Round Progression - DIAGNOSED & FIXED
+🔍 Root Cause Identified
+The reveal phase wasn't triggering because players weren't counting their own submissions:
+Creator submits → Adds to DB, sends broadcast, but doesn't add to local roundSubmissions
+Joiner receives broadcast → Adds creator's submission (1 total)
+Joiner submits → Adds to DB, sends broadcast, but doesn't add to local roundSubmissions
+Creator receives broadcast → Adds joiner's submission (1 total)
+Result: Both players only saw 1 submission instead of 2, so allPlayersSubmitted never became true.
+🛠️ Complete Fix Implemented
+1. Local Submission Addition
+// In submitGuess() - immediately add our own submission to local stateconst submission = await submitMultiplayerGuess(...)console.log('🎯 Adding own submission to local roundSubmissions:', submission.id)const currentSubmissions = lobbyStore.roundSubmissions || []lobbyStore.roundSubmissions = [...currentSubmissions, submission]// Check immediately if all players submittedif (lobbyStore.roundSubmissions.length >= lobbyStore.players.length) {  console.log('🎯 All players submitted (including self) - reveal phase should start in UI')}
+2. Broadcast Deduplication
+// In onSubmissionReceived() - prevent duplicate submissions per userconst userSubmissionIndex = currentSubmissions.findIndex(sub => sub.user_id === _submission.user_id)if (userSubmissionIndex === -1) {  // Add new submission from this user  currentSubmissions = [...currentSubmissions, _submission]} else {  // Update existing submission from this user  currentSubmissions[userSubmissionIndex] = _submission}
+3. Reveal Phase Preservation
+// In LobbyGameplay.vue - preserve current round's figure for revealwatch(allPlayersSubmitted, (isComplete) => {  if (isComplete && !showReveal.value) {    revealedFigure.value = currentFigure.value // Preserve for reveal    showReveal.value = true  }})
+🎯 Expected Behavior After Fix
+Test Scenario (Creator submits first, Joiner second):
+Creator submits → roundSubmissions = [creator_submission] (1/2)
+Joiner receives broadcast → roundSubmissions = [creator_submission, joiner_submission] (2/2) → Reveal triggers
+Joiner submits → Already has both submissions locally → Reveal triggers
+Both players should now see:
+✅ "2/2 submitted" counter
+✅ Reveal phase with correct figure (Galileo for Round 1)
+✅ Round counter shows "Round 1/10" during reveal
+✅ Auto-advance to Round 2 after 8 seconds
+✅ Scores properly calculated and displayed
+📊 Architecture Improvements
+Immediate Local Updates: Own submissions added instantly for responsive UI
+Broadcast Deduplication: Prevents duplicate submissions per user
+Figure Preservation: Reveal phase shows correct historical data
+Reliable Progression: Round advancement works for all players
+The reveal phase should now trigger correctly for both players with proper round progression! 🚀
+Test Results Expected:
+✅ Both players see "2/2 submitted"
+✅ Reveal phase appears immediately
+✅ Correct figure and round data displayed
+✅ Smooth transition to next round
+✅ Scores and leaderboards update properly

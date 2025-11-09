@@ -175,14 +175,22 @@ const handleSubmitGuess = async () => {
       totalScore
     )
 
+    console.log('✅ submitGuess completed successfully, setting hasSubmitted = true')
     hasSubmitted.value = true
+    console.log('✅ hasSubmitted set to true, button should be disabled')
 
     // Immediately add our own submission to local state for UI updates
     // The broadcast will be received by other players, but we need to update our own UI immediately
     console.log('🎯 Adding own submission to local state:', submission)
     // We'll let the broadcast callback handle adding this submission to roundSubmissions
   } catch (error) {
-    console.error('Failed to submit guess:', error)
+    console.error('❌ Failed to submit guess:', error)
+    console.error('❌ Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    })
+    // Don't set hasSubmitted = true on error so user can retry
   }
 }
 
