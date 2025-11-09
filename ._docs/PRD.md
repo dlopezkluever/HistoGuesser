@@ -523,7 +523,7 @@ lobby\_submissions
 
 * **Framework:** Vite \+ Vue 3 \+ TypeScript  
 * **Styling:** TailwindCSS (utility-first)  
-* **State Management:** Zustand (lightweight, no Redux complexity)  
+* **State Management:** Migrated to Pinia from Zustand (lightweight, Vue compatibility)  
 * **Map Library:** Leaflet.js with OpenStreetMap tiles  
 * **Build Tool:** Vite (fast HMR, optimized builds)
 
@@ -607,7 +607,7 @@ const roundScore \= Math.min(2500, spatialScore \+ temporalScore \+ nameScore \+
 | Frontend Framework | Vue 3 \+ TypeScript | Component-based UI |
 | Build Tool | Vite | Fast dev server, optimized builds |
 | Styling | TailwindCSS | Utility-first CSS |
-| State Management | Zustand | Lightweight global state |
+| State Management | Pinia | Vue compatiable state managemant |
 | Mapping | Leaflet.js | Interactive maps |
 | Map Tiles | OpenStreetMap | Free map data |
 | Distance Calculation | Custom Haversine | Great-circle distance calculation |
