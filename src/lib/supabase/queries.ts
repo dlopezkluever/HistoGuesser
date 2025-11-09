@@ -1,4 +1,5 @@
 import { supabase, supabaseUntyped } from './client'
+import { broadcastLobbyEvent } from './realtime'
 import type { Figure } from '@/types/figure'
 import type { PlayerStats } from '@/types/user'
 import type { LeaderboardEntry } from '@/types/score'
@@ -680,6 +681,16 @@ export async function submitMultiplayerGuess(
     .single()
 
   if (error) throw error
+
+  // Send broadcast event for realtime updates (fallback for postgres_changes)
+  try {
+    await broadcastLobbyEvent(lobbyId, 'submission_received', data)
+    console.log('📢 Broadcast sent for submission:', data.id)
+  } catch (broadcastError) {
+    console.warn('⚠️ Failed to broadcast submission event:', broadcastError)
+    // Don't fail the submission if broadcast fails
+  }
+
   return data as LobbySubmission
 }
 

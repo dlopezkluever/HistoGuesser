@@ -136,7 +136,7 @@ export function subscribeLobby(
     }
   )
 
-  // Subscribe to submissions
+  // Subscribe to submissions (primary: postgres_changes)
   channel.on(
     'postgres_changes',
     {
@@ -146,9 +146,28 @@ export function subscribeLobby(
       filter: `lobby_id=eq.${lobbyId}`,
     },
     (payload) => {
-      callbacks.onSubmissionReceived?.(payload.new)
+      console.log('📨 REALTIME: Submission INSERT detected:', payload.new)
+      console.log('📨 REALTIME: About to call onSubmissionReceived callback')
+      try {
+        callbacks.onSubmissionReceived?.(payload.new)
+        console.log('📨 REALTIME: onSubmissionReceived callback completed successfully')
+      } catch (error) {
+        console.error('📨 REALTIME: Error calling onSubmissionReceived callback:', error)
+      }
     }
   )
+
+  // Subscribe to submission broadcasts (fallback)
+  channel.on('broadcast', { event: 'submission_received' }, (payload) => {
+    console.log('📢 REALTIME: Submission received via broadcast:', payload.payload)
+    console.log('📨 REALTIME: About to call onSubmissionReceived callback via broadcast')
+    try {
+      callbacks.onSubmissionReceived?.(payload.payload)
+      console.log('📨 REALTIME: onSubmissionReceived callback completed successfully via broadcast')
+    } catch (error) {
+      console.error('📨 REALTIME: Error calling onSubmissionReceived callback via broadcast:', error)
+    }
+  })
 
   channel.subscribe((status, err) => {
     console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status, err ? `Error: ${err}` : '')
