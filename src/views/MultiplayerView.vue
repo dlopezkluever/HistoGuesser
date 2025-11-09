@@ -19,7 +19,8 @@ const {
   currentFigure,
   isRoundActive,
   isLoading,
-  error
+  error,
+  roundSubmissions
 } = storeToRefs(lobbyStore)
 
 // Get actions from composable
@@ -178,6 +179,7 @@ const debugSetLobby = () => {
             :players="players || []"
             :current-round="currentRound || 0"
             :figures="figures || []"
+            :round-submissions="roundSubmissions || []"
           />
         </div>
 

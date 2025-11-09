@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import type { Figure } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
@@ -10,12 +10,14 @@ import NameInput from '@/components/game/NameInput.vue'
 import TimelineSlider from '@/components/game/TimelineSlider.vue'
 import RevealPhase from '@/components/game/RevealPhase.vue'
 import { calculateSpatialScore, calculateTemporalScore, calculateNameScore, calculateSpeedBonus } from '@/lib/scoring'
+import type { LobbySubmission } from '@/types/lobby'
 
 interface Props {
   lobby: Lobby
   players: LobbyPlayer[]
   currentRound: number
   figures: Figure[]
+  roundSubmissions: LobbySubmission[]
 }
 
 const props = defineProps<Props>()
@@ -42,21 +44,27 @@ const currentFigure = computed(() => {
   }
   return null
 })
-const roundSubmissions = computed(() => {
-  // This would need to be passed as a prop or fetched
-  // For now, return empty array
-  return []
-})
+const roundSubmissions = computed(() => props.roundSubmissions || [])
+
 const allPlayersSubmitted = computed(() =>
   roundSubmissions.value.length >= props.players.length
 )
 
 const canSubmit = computed(() => {
-  return !hasSubmitted.value &&
+  const result = !hasSubmitted.value &&
          guessedLat.value !== null &&
          guessedLon.value !== null &&
          guessedYear.value !== null &&
          timeRemaining.value > 0
+  console.log('🔘 canSubmit check:', {
+    result,
+    hasSubmitted: hasSubmitted.value,
+    guessedLat: guessedLat.value,
+    guessedLon: guessedLon.value,
+    guessedYear: guessedYear.value,
+    timeRemaining: timeRemaining.value
+  })
+  return result
 })
 
 // Start timer when round begins
@@ -88,9 +96,16 @@ const stopTimer = () => {
 
 // Handle guess submission
 const handleSubmitGuess = async () => {
-  if (!canSubmit.value || !currentFigure.value) return
+  console.log('🎯 handleSubmitGuess called')
+  console.log('canSubmit:', canSubmit.value, 'currentFigure:', !!currentFigure.value)
+
+  if (!canSubmit.value || !currentFigure.value) {
+    console.log('❌ Validation failed - cannot submit')
+    return
+  }
 
   try {
+    console.log('✅ Validation passed - proceeding with submission')
     stopTimer()
 
     // Calculate scores
@@ -133,16 +148,21 @@ const handleSubmitGuess = async () => {
 
 // Handle map click
 const handleMapClick = (lat: number, lon: number) => {
+  console.log('🗺️ Map clicked:', lat, lon, 'hasSubmitted:', hasSubmitted.value)
   if (hasSubmitted.value) return
   guessedLat.value = lat
   guessedLon.value = lon
+  console.log('📍 Set guessedLat:', guessedLat.value, 'guessedLon:', guessedLon.value)
 }
 
 
-// Show reveal when all players have submitted
-if (allPlayersSubmitted.value && !showReveal.value) {
-  showReveal.value = true
-}
+// Watch for changes and show reveal when all submitted
+watch(allPlayersSubmitted, (isComplete) => {
+  if (isComplete && !showReveal.value) {
+    console.log('🎯 All players submitted - showing reveal phase')
+    showReveal.value = true
+  }
+})
 
 // Auto-advance after reveal
 const advanceRound = () => {
@@ -213,7 +233,7 @@ const advanceRound = () => {
             :target-lon="currentFigure?.lon || 0"
             :show-target="false"
             :interactive="!hasSubmitted"
-            @map-click="handleMapClick"
+            @guess="handleMapClick"
             class="w-full h-64 lg:h-80"
           />
 

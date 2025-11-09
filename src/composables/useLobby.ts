@@ -212,7 +212,7 @@ export function useLobby() {
   console.log('✅ startGame API completed - game started successfully!')
   console.log('⏳ Waiting for realtime status update to transition UI...')
 
-  // Set a timeout in case realtime doesn't work - force transition after 5 seconds
+  // Set a shorter timeout in case realtime doesn't work - force transition after 1 second
   setTimeout(() => {
     if (lobbyStore.isLoading) {
       console.warn('⏰ Realtime transition timeout - forcing game start manually')
@@ -247,7 +247,7 @@ export function useLobby() {
         lobbyStore.setLoading(false)
       }
     }
-  }, 5000)
+  }, 1000) // Reduced from 5000ms to 1000ms
 
   // Don't set loading to false here - let the onGameStarted callback handle it
   // The UI transition will happen when the realtime callback updates the lobby status
@@ -436,11 +436,18 @@ export function useLobby() {
       },
 
       onSubmissionReceived: async (_submission) => {
-        // Check if this completes the round (all players submitted)
+        console.log('📨 Submission received:', _submission)
+
+        // Always get fresh submissions for this round to update the counter
         const submissions = await getRoundSubmissions(lobbyId, lobbyStore.currentRound)
+        console.log('📊 Updated submissions:', submissions.length, 'players:', lobbyStore.players.length)
+
+        // Update round submissions for real-time counter display
+        lobbyStore.roundSubmissions = submissions
 
         // If all players have submitted, end the round
         if (submissions.length >= lobbyStore.players.length) {
+          console.log('🎯 All players submitted - ending round')
           lobbyStore.endRound(submissions)
 
           // Update player scores
