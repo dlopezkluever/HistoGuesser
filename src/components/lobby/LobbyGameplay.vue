@@ -40,7 +40,7 @@ const showReveal = ref(false)
 const revealedFigure = ref<Figure | null>(null) // Figure for the reveal phase
 
 // Use the unified round timer composable
-const { timeRemaining, start: startTimer, pause: pauseTimer, stop: stopTimer } = useRoundTimer({
+const { timeRemaining, start: startTimer, pause: pauseTimer, stop: stopTimer, reset: resetTimer } = useRoundTimer({
   duration: 45,
   autoStart: false,
   onExpire: () => {
@@ -245,8 +245,10 @@ const advanceRound = () => {
   showReveal.value = false
   revealedFigure.value = null
 
-  // Resume timer for next round
-  console.log('▶️ Resuming timer for next round')
+  // Reset and restart timer for next round
+  console.log('🔄 Resetting timer for next round')
+  resetTimer()
+  console.log('▶️ Starting fresh timer for next round')
   startTimer()
 }
 </script>
