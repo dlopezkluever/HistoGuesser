@@ -217,12 +217,41 @@ export function unsubscribeLobby(channel: RealtimeChannel) {
 /**
  * Broadcast a custom event to lobby participants
  */
-export async function broadcastLobbyEvent(lobbyId: string, event: string, payload: any) {
-  const channel = supabase.channel(`lobby:${lobbyId}`)
-  await channel.send({
-    type: 'broadcast',
-    event,
-    payload,
-  })
+/**
+ * Broadcast an event to all lobby participants with exponential backoff retry
+ */
+export async function broadcastLobbyEvent(lobbyId: string, event: string, payload: any, maxRetries = 3): Promise<void> {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const channel = supabase.channel(`lobby:${lobbyId}`)
+      await channel.send({
+        type: 'broadcast',
+        event,
+        payload,
+      })
+
+      console.log(`📢 Broadcast successful on attempt ${attempt} for event: ${event}`)
+      return // Success - exit the retry loop
+
+    } catch (error) {
+      lastError = error as Error
+      console.warn(`⚠️ Broadcast attempt ${attempt}/${maxRetries} failed for event: ${event}`, error)
+
+      // Don't wait after the last attempt
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s...
+        const delayMs = Math.pow(2, attempt - 1) * 1000
+        console.log(`⏳ Retrying broadcast in ${delayMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+
+  // If we get here, all retries failed
+  const errorMessage = `Broadcast failed after ${maxRetries} attempts for event: ${event}`
+  console.error(`❌ ${errorMessage}`, lastError)
+  throw new Error(errorMessage)
 }
 

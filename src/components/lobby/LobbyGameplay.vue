@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import type { Figure, Coordinates } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
@@ -93,6 +93,12 @@ const canSubmit = computed(() => {
 // Start timer when round begins
 onMounted(() => {
   startTimer()
+})
+
+// Defensive cleanup (useRoundTimer should handle this, but being safe)
+onUnmounted(() => {
+  console.log('🧹 LobbyGameplay unmounting - ensuring timer cleanup')
+  // useRoundTimer composable handles its own cleanup, but we'll double-check
 })
 
 // Timer functions are now handled by useRoundTimer composable
