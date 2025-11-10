@@ -375,3 +375,4 @@ npm run type-check   # TypeScript checking
 **Next Session Focus**: Fix map click handler and complete submission flow
 
 **Ready for continuation by any developer with Vue.js experience.**
+
