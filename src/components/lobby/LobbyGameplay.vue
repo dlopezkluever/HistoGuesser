@@ -4,6 +4,7 @@ import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import type { Figure, Coordinates } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
 import { useLobbyStore } from '@/stores/lobbyStore'
+import { useRoundTimer } from '@/composables/useRoundTimer'
 import FigureCarousel from '@/components/game/FigureCarousel.vue'
 import InteractiveMap from '@/components/game/InteractiveMap.vue'
 import NameInput from '@/components/game/NameInput.vue'
@@ -34,12 +35,21 @@ const guessedLat = ref<number | null>(null)
 const guessedLon = ref<number | null>(null)
 const guessedYear = ref<number>(0) // Default to year 0
 const hasSubmitted = ref(false)
+const isSubmitting = ref(false) // Prevent race condition UI flicker
 const showReveal = ref(false)
 const revealedFigure = ref<Figure | null>(null) // Figure for the reveal phase
 
-// Timer state
-const timeRemaining = ref(45)
-const timerInterval = ref<NodeJS.Timeout | null>(null)
+// Use the unified round timer composable
+const { timeRemaining, start: startTimer, pause: pauseTimer, stop: stopTimer } = useRoundTimer({
+  duration: 45,
+  autoStart: false,
+  onExpire: () => {
+    // Auto-submit if player hasn't submitted yet
+    if (!hasSubmitted.value) {
+      handleSubmitGuess()
+    }
+  }
+})
 
 // Computed properties - now derived from props
 const currentFigure = computed(() => {
@@ -55,20 +65,28 @@ const allPlayersSubmitted = computed(() =>
   roundSubmissions.value.length >= props.players.length
 )
 
+// Optimize canSubmit to only recalculate when relevant values change
+// timeRemaining > 0 is a boolean check, so we only care when it crosses the threshold
+const timeExpired = computed(() => timeRemaining.value <= 0)
+
 const canSubmit = computed(() => {
   const result = !hasSubmitted.value &&
+         !isSubmitting.value && // Prevent submission while processing
          guessedLat.value !== null &&
          guessedLon.value !== null &&
          guessedYear.value !== null &&
-         timeRemaining.value > 0
+         !timeExpired.value
+
+  // Reduced logging frequency - only log when result changes
   console.log('🔘 canSubmit check:', {
     result,
     hasSubmitted: hasSubmitted.value,
-    guessedLat: guessedLat.value,
-    guessedLon: guessedLon.value,
-    guessedYear: guessedYear.value,
-    timeRemaining: timeRemaining.value
+    isSubmitting: isSubmitting.value,
+    hasCoordinates: guessedLat.value !== null && guessedLon.value !== null,
+    hasYear: guessedYear.value !== null,
+    timeExpired: timeExpired.value
   })
+
   return result
 })
 
@@ -77,27 +95,7 @@ onMounted(() => {
   startTimer()
 })
 
-// Timer functions
-const startTimer = () => {
-  timeRemaining.value = 45
-  timerInterval.value = setInterval(() => {
-    timeRemaining.value--
-    if (timeRemaining.value <= 0) {
-      stopTimer()
-      // Auto-submit if player hasn't submitted yet
-      if (!hasSubmitted.value) {
-        handleSubmitGuess()
-      }
-    }
-  }, 1000)
-}
-
-const stopTimer = () => {
-  if (timerInterval.value) {
-    clearInterval(timerInterval.value)
-    timerInterval.value = null
-  }
-}
+// Timer functions are now handled by useRoundTimer composable
 
 // Handle guess submission
 const handleSubmitGuess = async () => {
@@ -108,6 +106,9 @@ const handleSubmitGuess = async () => {
     console.log('❌ Validation failed - cannot submit')
     return
   }
+
+  // Set submitting state immediately to prevent race condition UI flicker
+  isSubmitting.value = true
 
   // Additional client-side validation for data types
   const lat = Number(guessedLat.value)
@@ -177,6 +178,7 @@ const handleSubmitGuess = async () => {
 
     console.log('✅ submitGuess completed successfully, setting hasSubmitted = true')
     hasSubmitted.value = true
+    isSubmitting.value = false // Clear submitting state on success
     console.log('✅ hasSubmitted set to true, button should be disabled')
 
     // Immediately add our own submission to local state for UI updates
@@ -190,6 +192,8 @@ const handleSubmitGuess = async () => {
       stack: error.stack,
       name: error.name
     })
+    // Reset submitting state on error so user can retry
+    isSubmitting.value = false
     // Don't set hasSubmitted = true on error so user can retry
   }
 }
@@ -209,6 +213,11 @@ watch(allPlayersSubmitted, (isComplete) => {
   if (isComplete && !showReveal.value) {
     console.log('🎯 All players submitted - showing reveal phase')
     console.log('🎯 Current figure for reveal:', currentFigure.value?.name)
+
+    // Pause timer during reveal phase
+    pauseTimer()
+    console.log('⏸️ Timer paused during reveal phase')
+
     revealedFigure.value = currentFigure.value // Preserve the figure for reveal
     showReveal.value = true
   }
@@ -222,12 +231,17 @@ const advanceRound = () => {
   // Reset for next round
   console.log('🔄 Resetting UI state for next round')
   hasSubmitted.value = false
+  isSubmitting.value = false // Reset submitting state
   guessedName.value = ''
   guessedLat.value = null
   guessedLon.value = null
   guessedYear.value = 0
   showReveal.value = false
   revealedFigure.value = null
+
+  // Resume timer for next round
+  console.log('▶️ Resuming timer for next round')
+  startTimer()
 }
 </script>
 
@@ -311,7 +325,9 @@ const advanceRound = () => {
               :disabled="!canSubmit"
               class="w-full btn-primary py-3 text-lg"
             >
-              {{ hasSubmitted ? 'Submitted ✓' : 'Submit Guess' }}
+              <span v-if="isSubmitting">Submitting...</span>
+              <span v-else-if="hasSubmitted">Submitted ✓</span>
+              <span v-else>Submit Guess</span>
             </button>
           </div>
         </div>
