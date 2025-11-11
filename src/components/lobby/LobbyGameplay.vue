@@ -419,7 +419,7 @@ const advanceRound = () => {
       <Transition name="fade">
         <div
           v-if="showSubmissionStatus && !showReveal"
-          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[1000]"
           @click.self="showSubmissionStatus = false"
         >
           <div class="bg-noir-surface border border-noir-gold/20 rounded-lg p-6 max-w-md mx-4 shadow-xl">
