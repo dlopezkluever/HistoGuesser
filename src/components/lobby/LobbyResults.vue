@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import { useLobby } from '@/composables/useLobby'
+import { getLobbyWithPlayers } from '@/lib/supabase/queries'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 
@@ -15,9 +16,32 @@ const props = defineProps<Props>()
 const router = useRouter()
 const { leaveCurrentLobby } = useLobby()
 
+// Store for fresh player data from database
+const freshPlayers = ref<LobbyPlayer[]>([])
+
+// Fetch latest player data from database on mount
+onMounted(async () => {
+  try {
+    console.log('📊 Fetching fresh player data for results...')
+    console.log('📊 Props players:', props.players.map(p => ({ username: p.username, score: p.score })))
+    const { players } = await getLobbyWithPlayers(props.lobby.id)
+    freshPlayers.value = players
+    console.log('✅ Loaded fresh player data from DB:', players.map(p => ({ username: p.username, score: p.score })))
+    console.log('✅ Final playersData for display:', playersData.value.map(p => ({ username: p.username, score: p.score })))
+  } catch (error) {
+    console.error('❌ Failed to fetch fresh player data:', error)
+    console.log('⚠️ Falling back to props data:', props.players.map(p => ({ username: p.username, score: p.score })))
+    // Fallback to prop data if database fetch fails
+    freshPlayers.value = props.players
+  }
+})
+
+// Use fresh database data, fallback to props
+const playersData = computed(() => freshPlayers.value.length > 0 ? freshPlayers.value : props.players)
+
 // Sort players by score (highest first)
 const sortedPlayers = computed(() =>
-  [...props.players].sort((a, b) => b.score - a.score)
+  [...playersData.value].sort((a, b) => b.score - a.score)
 )
 
 // Get medal emoji for top 3

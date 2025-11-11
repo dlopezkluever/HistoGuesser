@@ -81,8 +81,8 @@ export const useLobbyStore = defineStore('lobby', () => {
     }
   }
 
-  const updatePlayerScore = (playerId: string, score: number) => {
-    const playerIndex = players.value.findIndex(p => p.id === playerId)
+  const updatePlayerScore = (userId: string, score: number) => {
+    const playerIndex = players.value.findIndex(p => p.user_id === userId)
     if (playerIndex !== -1) {
       // Create a fresh array to ensure reactivity
       const updatedPlayers = [...players.value]

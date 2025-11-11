@@ -89,10 +89,32 @@ const handleAdvanceRound = async () => {
       return acc
     }, {} as Record<string, number>)
 
-    Object.entries(scoreUpdates).forEach(([userId, additionalScore]) => {
+    console.log('📊 Score updates for this round:', scoreUpdates)
+    console.log('📊 Current player scores before update:', lobbyStore.players.map(p => ({ user_id: p.user_id, score: p.score })))
+
+    // Update both local store and database
+    const { updatePlayerScore } = await import('@/lib/supabase/queries')
+
+    for (const [userId, additionalScore] of Object.entries(scoreUpdates)) {
       const currentScore = lobbyStore.players.find(p => p.user_id === userId)?.score || 0
-      lobbyStore.updatePlayerScore(userId, currentScore + additionalScore)
-    })
+      const newScore = currentScore + additionalScore
+
+      console.log(`🔢 Player ${userId}: ${currentScore} + ${additionalScore} = ${newScore}`)
+
+      // Update local store immediately for responsive UI
+      lobbyStore.updatePlayerScore(userId, newScore)
+
+      // Persist to database
+      try {
+        await updatePlayerScore(lobby.value!.id, userId, newScore)
+        console.log('💾 Persisted score to database:', { userId, newScore })
+      } catch (error) {
+        console.error('❌ Failed to persist score to database:', error)
+        // Continue with local state update even if DB fails
+      }
+    }
+
+    console.log('📊 Player scores after update:', lobbyStore.players.map(p => ({ user_id: p.user_id, score: p.score })))
 
     const nextRound = lobbyStore.currentRound + 1
     console.log('🎲 Current round:', lobbyStore.currentRound, 'Next round would be:', nextRound)
@@ -225,8 +247,8 @@ const debugSetLobby = () => {
         </div>
 
         <!-- Active Game -->
-        <div v-else-if="lobby && lobby.status === 'in_progress' && isRoundActive" class="border-2 border-blue-500 p-4">
-          <p class="text-blue-400 mb-2">🔵 RENDERING: Active Game</p>
+        <div v-else-if="lobby && lobby.status === 'in_progress'" class="border-2 border-blue-500 p-4">
+          <p class="text-blue-400 mb-2">🔵 RENDERING: Active Game (Round: {{ currentRound }}, Active: {{ isRoundActive }})</p>
           <LobbyGameplay
             :lobby="lobby"
             :players="players || []"

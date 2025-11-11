@@ -736,6 +736,27 @@ export async function updatePlayerReady(lobbyId: string, userId: string, ready: 
 }
 
 /**
+ * Update player score
+ */
+export async function updatePlayerScore(
+  lobbyId: string,
+  userId: string,
+  score: number
+): Promise<void> {
+  console.log('🎯 updatePlayerScore called:', { lobbyId, userId, score })
+
+  const { error } = await supabaseUntyped
+    .from('lobby_players')
+    .update({ score })
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+
+  console.log('✅ Player score updated successfully:', { lobbyId, userId, score })
+}
+
+/**
  * Leave a lobby
  */
 export async function leaveLobby(lobbyId: string, userId: string): Promise<void> {
