@@ -36,6 +36,8 @@ const guessedLon = ref<number | null>(null)
 const guessedYear = ref<number>(0) // Default to year 0
 const hasSubmitted = ref(false)
 const isSubmitting = ref(false) // Prevent race condition UI flicker
+const submittedOnTime = ref<boolean | null>(null) // null = not submitted, true = submitted on time, false = timed out
+const showSubmissionStatus = ref(false) // Show status modal
 const showReveal = ref(false)
 const revealedFigure = ref<Figure | null>(null) // Figure for the reveal phase
 
@@ -46,7 +48,8 @@ const { timeRemaining, start: startTimer, pause: pauseTimer, stop: stopTimer, re
   onExpire: () => {
     // Auto-submit if player hasn't submitted yet
     if (!hasSubmitted.value) {
-      handleSubmitGuess()
+      console.log('⏰ Timer expired - auto-submitting with current guesses')
+      autoSubmitOnTimeout()
     }
   }
 })
@@ -103,6 +106,55 @@ onUnmounted(() => {
 
 // Timer functions are now handled by useRoundTimer composable
 
+// Auto-submit when timer expires (bypasses normal validation)
+const autoSubmitOnTimeout = async () => {
+  console.log('⏰ autoSubmitOnTimeout called - submitting with current state')
+  console.log('Current guesses - name:', guessedName.value, 'coords:', guessedLat.value, guessedLon.value, 'year:', guessedYear.value)
+
+  if (!currentFigure.value) {
+    console.error('❌ No current figure available for auto-submit')
+    return
+  }
+
+  // Mark as timed out submission
+  submittedOnTime.value = false
+  showSubmissionStatus.value = true
+  isSubmitting.value = true
+
+  try {
+    // Calculate scores using current guesses (may be incomplete)
+    const lat = guessedLat.value ?? 0 // Default to 0 if no coordinate set
+    const lon = guessedLon.value ?? 0
+    const year = guessedYear.value || 0 // Default to year 0 if not set
+
+    console.log('📊 Auto-submitting with values:', { lat, lon, year, name: guessedName.value })
+
+    const spatialResult = calculateSpatialScore(lat, lon, currentFigure.value.lat, currentFigure.value.lon)
+    const temporalResult = calculateTemporalScore(year, currentFigure.value.birth_year)
+    const nameScore = calculateNameScore(guessedName.value, currentFigure.value.name, currentFigure.value.aliases || [])
+    const speedBonus = 0 // No speed bonus for timeout submissions
+
+    const totalScore = spatialResult.score + temporalResult.score + nameScore + speedBonus
+
+    console.log('📊 Auto-submit scores:', { spatial: spatialResult.score, temporal: temporalResult.score, name: nameScore, speed: speedBonus, total: totalScore })
+
+    // Submit to server
+    const submission = await submitGuess(guessedName.value, lat, lon, year, totalScore)
+
+    console.log('✅ Auto-submit completed successfully')
+    hasSubmitted.value = true
+    isSubmitting.value = false
+
+    // Add own submission to local state
+    console.log('🎯 Adding auto-submitted guess to local state:', submission.id)
+
+  } catch (error) {
+    console.error('❌ Auto-submit failed:', error)
+    isSubmitting.value = false
+    // Don't set hasSubmitted = true on error so user can potentially retry
+  }
+}
+
 // Handle guess submission
 const handleSubmitGuess = async () => {
   console.log('🎯 handleSubmitGuess called')
@@ -112,6 +164,10 @@ const handleSubmitGuess = async () => {
     console.log('❌ Validation failed - cannot submit')
     return
   }
+
+  // Mark as on-time submission
+  submittedOnTime.value = true
+  showSubmissionStatus.value = true
 
   // Set submitting state immediately to prevent race condition UI flicker
   isSubmitting.value = true
@@ -238,6 +294,8 @@ const advanceRound = () => {
   console.log('🔄 Resetting UI state for next round')
   hasSubmitted.value = false
   isSubmitting.value = false // Reset submitting state
+  submittedOnTime.value = null // Reset submission status
+  showSubmissionStatus.value = false // Hide status modal
   guessedName.value = ''
   guessedLat.value = null
   guessedLon.value = null
@@ -356,6 +414,45 @@ const advanceRound = () => {
         :auto-advance-delay="8"
         @next="advanceRound"
       />
+
+      <!-- Submission Status Modal -->
+      <Transition name="fade">
+        <div
+          v-if="showSubmissionStatus && !showReveal"
+          class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          @click.self="showSubmissionStatus = false"
+        >
+          <div class="bg-noir-surface border border-noir-gold/20 rounded-lg p-6 max-w-md mx-4 shadow-xl">
+            <div class="text-center">
+              <!-- Submitted on time -->
+              <div v-if="submittedOnTime === true" class="text-green-400">
+                <div class="text-4xl mb-2">✅</div>
+                <h3 class="text-xl font-semibold mb-2 text-noir-gold">Guess Submitted!</h3>
+                <p class="text-noir-text mb-4">Waiting for other players to submit their guesses...</p>
+              </div>
+
+              <!-- Auto-submitted due to timeout -->
+              <div v-else-if="submittedOnTime === false" class="text-orange-400">
+                <div class="text-4xl mb-2">⏰</div>
+                <h3 class="text-xl font-semibold mb-2 text-noir-gold">Time Expired</h3>
+                <p class="text-noir-text mb-4">Auto-submitted with your current guesses. Waiting for other players...</p>
+              </div>
+
+              <!-- Still submitting -->
+              <div v-else-if="isSubmitting" class="text-blue-400">
+                <div class="text-4xl mb-2 animate-spin">⏳</div>
+                <h3 class="text-xl font-semibold mb-2 text-noir-gold">Submitting...</h3>
+                <p class="text-noir-text mb-4">Please wait while we process your guess.</p>
+              </div>
+            </div>
+
+            <!-- Player count indicator -->
+            <div class="text-center text-sm text-noir-text/60">
+              {{ roundSubmissions.length }}/{{ players.length }} players submitted
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
   </div>
 </template>
