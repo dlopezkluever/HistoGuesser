@@ -23,7 +23,6 @@ see logs 29 near the end
 
 oh it found it on its own: ⚠️ Minor Issue Found:
 There's a coordinate validation bug - longitude -249 is invalid (should be -180 to +180). The auto-submit failed due to this constraint violation, but it doesn't affect the score accumulation fix.
-🚀 Result:
 
 **DO THIS FIRST THING NEXT**
 -----------

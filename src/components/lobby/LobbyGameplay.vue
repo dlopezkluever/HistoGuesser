@@ -122,15 +122,18 @@ const autoSubmitOnTimeout = async () => {
   isSubmitting.value = true
 
   try {
-    // Calculate scores using current guesses (may be incomplete)
-    const lat = guessedLat.value ?? 0 // Default to 0 if no coordinate set
-    const lon = guessedLon.value ?? 0
-    const year = guessedYear.value || 0 // Default to year 0 if not set
+    // Validate and sanitize coordinates for auto-submit
+    let lat = guessedLat.value ?? 0
+    let lon = guessedLon.value ?? 0
 
-    console.log('📊 Auto-submitting with values:', { lat, lon, year, name: guessedName.value })
+    // Clamp coordinates to valid ranges
+    lat = Math.max(-90, Math.min(90, lat))
+    lon = Math.max(-180, Math.min(180, lon))
+
+    console.log('📊 Auto-submitting with sanitized values:', { lat, lon, year: guessedYear.value, name: guessedName.value })
 
     const spatialResult = calculateSpatialScore(lat, lon, currentFigure.value.lat, currentFigure.value.lon)
-    const temporalResult = calculateTemporalScore(year, currentFigure.value.birth_year)
+    const temporalResult = calculateTemporalScore(guessedYear.value || 0, currentFigure.value.birth_year)
     const nameScore = calculateNameScore(guessedName.value, currentFigure.value.name, currentFigure.value.aliases || [])
     const speedBonus = 0 // No speed bonus for timeout submissions
 
@@ -138,8 +141,8 @@ const autoSubmitOnTimeout = async () => {
 
     console.log('📊 Auto-submit scores:', { spatial: spatialResult.score, temporal: temporalResult.score, name: nameScore, speed: speedBonus, total: totalScore })
 
-    // Submit to server
-    const submission = await submitGuess(guessedName.value, lat, lon, year, totalScore)
+    // Submit to server with sanitized coordinates
+    const submission = await submitGuess(guessedName.value, lat, lon, guessedYear.value || 0, totalScore)
 
     console.log('✅ Auto-submit completed successfully')
     hasSubmitted.value = true
@@ -150,8 +153,16 @@ const autoSubmitOnTimeout = async () => {
 
   } catch (error) {
     console.error('❌ Auto-submit failed:', error)
+
+    // CRITICAL FIX: Even if submission fails, we must mark as submitted to prevent game deadlock
+    // The game must progress even if one player's submission fails
+    console.warn('⚠️ Auto-submit failed, but marking as submitted to prevent deadlock')
+    hasSubmitted.value = true
     isSubmitting.value = false
-    // Don't set hasSubmitted = true on error so user can potentially retry
+
+    // Still trigger round progression by ensuring the UI thinks submission happened
+    // The broadcast system will handle real submissions from other players
+    console.log('⚠️ Marked as submitted despite failure to prevent deadlock')
   }
 }
 
@@ -186,10 +197,12 @@ const handleSubmitGuess = async () => {
     return
   }
 
-  // Validate coordinate ranges
+  // Validate and sanitize coordinate ranges
   if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-    console.error('❌ Invalid coordinate ranges:', { lat, lon })
-    return
+    console.warn('⚠️ Invalid coordinate ranges detected, sanitizing:', { original: { lat, lon }, sanitized: { lat: Math.max(-90, Math.min(90, lat)), lon: Math.max(-180, Math.min(180, lon)) } })
+    // Sanitize coordinates to valid ranges instead of rejecting
+    lat = Math.max(-90, Math.min(90, lat))
+    lon = Math.max(-180, Math.min(180, lon))
   }
 
   console.log('✅ Client-side validation passed:', { lat, lon, year })
