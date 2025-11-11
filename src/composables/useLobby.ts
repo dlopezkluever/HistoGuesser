@@ -124,8 +124,7 @@ export function useLobby() {
       console.log('🔄 Calling joinLobby API...')
       const { lobby, player } = await joinLobby(
         authStore.getState().user!.id,
-        // @ts-expect-error - user_metadata exists on Supabase User type
-        authStore.getState().user!.user_metadata?.username || 'Anonymous',
+        authStore.getState().user!.username || 'Anonymous',
         roomCode
       )
       console.log('✅ joinLobby API returned:', { lobbyId: lobby.id, roomCode: lobby.room_code, playerId: player.id })

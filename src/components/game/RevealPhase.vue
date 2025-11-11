@@ -47,7 +47,7 @@
           class="flex items-center justify-between p-3 rounded-lg border border-noir-gold/20 bg-noir-surface/50"
         >
           <div class="flex items-center gap-3">
-            <span class="text-noir-text font-medium">{{ submission.guessed_name || 'No guess' }}</span>
+            <span class="text-noir-text font-medium">{{ getPlayerUsername(submission.user_id) }}</span>
             <span class="text-noir-text opacity-60 text-sm">
               {{ Math.round(submission.submission_time * 10) / 10 }}s
             </span>
@@ -139,6 +139,11 @@ const formatYear = (year: number): string => {
     return `${Math.abs(year)} BCE`;
   }
   return `${year} CE`;
+};
+
+const getPlayerUsername = (userId: string): string => {
+  const player = props.players?.find(p => p.user_id === userId);
+  return player?.username || 'Unknown Player';
 };
 
 const handleNext = () => {
