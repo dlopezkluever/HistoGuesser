@@ -10,6 +10,7 @@ export function subscribeLobby(
     onPlayerJoined?: (player: any) => void
     onPlayerLeft?: (playerId: string) => void
     onPlayerReady?: (playerId: string) => void
+    onPlayerReadyForNextRound?: (userId: string, ready: boolean) => void
     onGameStarted?: () => void
     onRoundStarted?: (roundNumber: number) => void
     onSubmissionReceived?: (submission: any) => void
@@ -166,6 +167,17 @@ export function subscribeLobby(
       console.log('📨 REALTIME: onSubmissionReceived callback completed successfully via broadcast')
     } catch (error) {
       console.error('📨 REALTIME: Error calling onSubmissionReceived callback via broadcast:', error)
+    }
+  })
+
+  // Subscribe to player ready for next round broadcasts
+  channel.on('broadcast', { event: 'player_ready_for_next_round' }, (payload) => {
+    console.log('📢 REALTIME: Player ready for next round via broadcast:', payload.payload)
+    try {
+      callbacks.onPlayerReadyForNextRound?.(payload.payload.user_id, payload.payload.ready)
+      console.log('📢 REALTIME: onPlayerReadyForNextRound callback completed successfully')
+    } catch (error) {
+      console.error('📢 REALTIME: Error calling onPlayerReadyForNextRound callback:', error)
     }
   })
 

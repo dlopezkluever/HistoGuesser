@@ -20,7 +20,8 @@ const {
   isRoundActive,
   isLoading,
   error,
-  roundSubmissions
+  roundSubmissions,
+  allPlayersReadyForNextRound
 } = storeToRefs(lobbyStore)
 
 // Get actions from composable
@@ -75,6 +76,12 @@ const handleAdvanceRound = async () => {
 
   if (!lobby.value || !lobbyStore.roundSubmissions.length) {
     console.warn('⚠️ handleAdvanceRound: Missing lobby or submissions')
+    return
+  }
+
+  // Only advance if all players are ready for the next round
+  if (!allPlayersReadyForNextRound.value) {
+    console.log('⏳ handleAdvanceRound: Not all players ready for next round yet')
     return
   }
 

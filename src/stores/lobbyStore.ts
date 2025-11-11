@@ -16,6 +16,7 @@ export const useLobbyStore = defineStore('lobby', () => {
   const roundSubmissions = ref<LobbySubmission[]>([])
   const isRoundActive = ref<boolean>(false)
   const roundStartTime = ref<number | null>(null)
+  const playersReadyForNextRound = ref<string[]>([]) // Track players ready for next round
 
   // UI state
   const isLoading = ref<boolean>(false)
@@ -59,6 +60,8 @@ export const useLobbyStore = defineStore('lobby', () => {
     roundSubmissions.value = []
     isRoundActive.value = true
     roundStartTime.value = Date.now()
+    // Clear players ready for next round when starting a new round
+    clearPlayersReadyForNextRound()
   }
 
   const endRound = (submissions: LobbySubmission[]) => {
@@ -91,6 +94,27 @@ export const useLobbyStore = defineStore('lobby', () => {
     }
   }
 
+  const setPlayerReadyForNextRound = (userId: string, ready: boolean) => {
+    console.log('🏪 STORE: setPlayerReadyForNextRound called for user', userId, 'ready:', ready)
+    const currentArray = [...playersReadyForNextRound.value]
+    if (ready) {
+      if (!currentArray.includes(userId)) {
+        currentArray.push(userId)
+      }
+    } else {
+      const index = currentArray.indexOf(userId)
+      if (index > -1) {
+        currentArray.splice(index, 1)
+      }
+    }
+    playersReadyForNextRound.value = currentArray
+    console.log('🏪 STORE: setPlayerReadyForNextRound completed - ready players:', playersReadyForNextRound.value)
+  }
+
+  const clearPlayersReadyForNextRound = () => {
+    playersReadyForNextRound.value = []
+  }
+
   const setLoading = (loading: boolean) => {
     isLoading.value = loading
   }
@@ -109,6 +133,7 @@ export const useLobbyStore = defineStore('lobby', () => {
     roundSubmissions.value = []
     isRoundActive.value = false
     roundStartTime.value = null
+    playersReadyForNextRound.value = []
     isLoading.value = false
     error.value = null
   }
@@ -126,6 +151,15 @@ export const useLobbyStore = defineStore('lobby', () => {
     return players.value.filter(player => player.ready)
   })
 
+  const allPlayersReadyForNextRound = computed(() => {
+    const connectedUserIds = connectedPlayers.value.map(p => p.user_id)
+    return connectedUserIds.length > 0 && connectedUserIds.every(userId => playersReadyForNextRound.value.includes(userId))
+  })
+
+  const currentPlayerReadyForNextRound = computed(() => {
+    return currentPlayer.value ? playersReadyForNextRound.value.includes(currentPlayer.value.user_id) : false
+  })
+
   return {
     // State
     currentLobby,
@@ -137,6 +171,7 @@ export const useLobbyStore = defineStore('lobby', () => {
     roundSubmissions,
     isRoundActive,
     roundStartTime,
+    playersReadyForNextRound,
     isLoading,
     error,
 
@@ -144,6 +179,8 @@ export const useLobbyStore = defineStore('lobby', () => {
     isHost,
     connectedPlayers,
     readyPlayers,
+    allPlayersReadyForNextRound,
+    currentPlayerReadyForNextRound,
 
     // Actions
     setLobby,
@@ -154,6 +191,8 @@ export const useLobbyStore = defineStore('lobby', () => {
     endRound,
     updatePlayerReady,
     updatePlayerScore,
+    setPlayerReadyForNextRound,
+    clearPlayersReadyForNextRound,
     setLoading,
     setError,
     reset

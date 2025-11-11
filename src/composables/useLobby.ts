@@ -12,7 +12,7 @@ import {
   leaveLobby,
   leaveAllLobbies
 } from '@/lib/supabase/queries'
-import { subscribeLobby, unsubscribeLobby } from '@/lib/supabase/realtime'
+import { subscribeLobby, unsubscribeLobby, broadcastLobbyEvent } from '@/lib/supabase/realtime'
 import { getFigureById } from '@/lib/supabase/queries'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
@@ -435,6 +435,16 @@ export function useLobby() {
         }
       },
 
+      onPlayerReadyForNextRound: async (userId: string, ready: boolean) => {
+        console.log('👥 REALTIME CALLBACK: Player ready for next round:', userId, ready)
+        try {
+          lobbyStore.setPlayerReadyForNextRound(userId, ready)
+          console.log('👥 REALTIME CALLBACK: Updated player ready for next round status')
+        } catch (error) {
+          console.error('👥 REALTIME CALLBACK: Error in onPlayerReadyForNextRound:', error)
+        }
+      },
+
       onGameStarted: async () => {
         console.log('🎮 REALTIME CALLBACK: onGameStarted triggered for lobby:', lobbyId)
 
@@ -556,6 +566,21 @@ export function useLobby() {
     console.log('✅ Cleanup completed')
   }
 
+  const broadcastEvent = async (event: string, payload: any) => {
+    const lobbyId = lobbyStore.currentLobby?.id
+    if (!lobbyId) {
+      console.error('❌ Cannot broadcast event: no current lobby')
+      return
+    }
+
+    try {
+      await broadcastLobbyEvent(lobbyId, event, payload)
+      console.log(`📢 Broadcasted event: ${event}`)
+    } catch (error) {
+      console.error(`❌ Failed to broadcast event ${event}:`, error)
+    }
+  }
+
   console.log('📤 useLobby returning actions only - state accessed via store directly')
 
   return {
@@ -566,6 +591,7 @@ export function useLobby() {
     startMultiplayerGame,
     submitGuess,
     leaveCurrentLobby,
+    broadcastEvent,
     cleanup
   }
 }

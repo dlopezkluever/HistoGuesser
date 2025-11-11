@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import type { Figure, Coordinates } from '@/types/figure'
 import { useLobby } from '@/composables/useLobby'
@@ -16,6 +17,10 @@ import type { LobbySubmission } from '@/types/lobby'
 const emit = defineEmits<{
   advanceRound: []
 }>()
+
+// Get the current player ready status from the store
+const lobbyStore = useLobbyStore()
+const { currentPlayerReadyForNextRound, allPlayersReadyForNextRound } = storeToRefs(lobbyStore)
 
 interface Props {
   lobby: Lobby
@@ -298,7 +303,34 @@ watch(allPlayersSubmitted, (isComplete) => {
   }
 })
 
-// Auto-advance after reveal
+// Watch for when all players are ready for next round and auto-advance
+watch(allPlayersReadyForNextRound, (isReady) => {
+  if (isReady && showReveal.value) {
+    console.log('🎯 All players ready for next round - auto-advancing')
+    advanceRound()
+  }
+})
+
+// Handle player ready for next round
+const handleReadyForNextRound = (ready: boolean) => {
+  console.log('🎯 handleReadyForNextRound called:', ready)
+  const lobbyStore = useLobbyStore()
+  const currentPlayer = lobbyStore.currentPlayer
+
+  if (currentPlayer) {
+    console.log('🎯 Setting player ready for next round:', currentPlayer.user_id, ready)
+    lobbyStore.setPlayerReadyForNextRound(currentPlayer.user_id, ready)
+
+    // Broadcast to other players
+    const { broadcastEvent } = useLobby()
+    broadcastEvent('player_ready_for_next_round', {
+      user_id: currentPlayer.user_id,
+      ready
+    })
+  }
+}
+
+// Auto-advance after reveal (only called when all players are ready)
 const advanceRound = () => {
   console.log('🎯 advanceRound called - emitting to parent for round progression')
   emit('advanceRound')
@@ -423,9 +455,12 @@ const advanceRound = () => {
         :guessed-lat="guessedLat || 0"
         :guessed-lon="guessedLon || 0"
         :guessed-year="guessedYear || 0"
+        :current-player-ready-for-next-round="currentPlayerReadyForNextRound"
+        :all-players-ready-for-next-round="allPlayersReadyForNextRound"
         :auto-advance="true"
         :auto-advance-delay="8"
         @next="advanceRound"
+        @ready-for-next-round="handleReadyForNextRound"
       />
 
       <!-- Submission Status Modal -->

@@ -287,19 +287,19 @@ lobby_submissions (
 ## **🚀 Future Development Roadmap**
 
 ### **Immediate Priority (Next Session - UI/UX Polish)**
-1. **UI Layout Consistency** (15 min)
-   - Compare multiplayer vs. free play review screens
-   - Match visual components and spacing
-   - Remove cramped blue box styling
+1. **Image Flicker Fix** (10 min)
+   - Prevent brief display of previous round's images
+   - Ensure correct images load immediately for each round
 
 2. **Round Progression Sync Fix** (20 min)
    - Prevent players getting unsynced when clicking "next round" early
    - Option A: Modal waiting for all players to click "next round"
    - Option B: Remove manual "next round" button, use only auto-progression
 
-3. **Image Flicker Fix** (10 min)
-   - Prevent brief display of previous round's images
-   - Ensure correct images load immediately for each round
+3. **UI Layout Consistency** (15 min)
+   - Compare multiplayer vs. free play review screens
+   - Match visual components and spacing
+   - Remove cramped blue box styling
 
 ### **Short-term Goals (1-2 sessions - Scalability Testing)**
 4. **3+ Player Sync Testing** (30 min)
@@ -329,8 +329,6 @@ lobby_submissions (
 
 ### **Long-term Goals (Production Features)**
 9. **Advanced Multiplayer Features**
-   - Private lobbies with passwords
-   - Spectator mode for ongoing games
    - Player disconnect/reconnect handling
    - Game statistics and leaderboards
 
@@ -439,8 +437,6 @@ npm run type-check   # TypeScript checking
 
 **Full Feature Set (Future Goals)**:
 - 🔄 Support for 2-8 players (lobby creation works, sync needs testing)
-- ❌ Private lobbies (password protection)
-- ❌ Spectator mode
 - ❌ Game statistics and leaderboards
 - ❌ Mobile optimization
 

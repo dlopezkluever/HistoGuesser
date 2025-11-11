@@ -73,13 +73,20 @@
 
     <!-- Next button -->
     <div class="reveal-actions">
-      <Button 
-        variant="primary" 
-        size="lg" 
+      <Button
+        variant="primary"
+        size="lg"
         full-width
+        :disabled="isMultiplayer && currentPlayerReadyForNextRound"
         @click="handleNext"
       >
-        {{ isLastRound ? 'View Results' : 'Next Round' }}
+        <template v-if="isMultiplayer">
+          <span v-if="currentPlayerReadyForNextRound">Waiting for other players...</span>
+          <span v-else>{{ isLastRound ? 'View Results' : 'Next Round' }}</span>
+        </template>
+        <template v-else>
+          {{ isLastRound ? 'View Results' : 'Next Round' }}
+        </template>
       </Button>
       <div v-if="autoAdvance && countdown > 0" class="auto-advance-text">
         Auto-advancing in {{ countdown }}s...
@@ -111,6 +118,8 @@ interface Props {
   guessedLat?: number;
   guessedLon?: number;
   guessedYear?: number;
+  currentPlayerReadyForNextRound?: boolean;
+  allPlayersReadyForNextRound?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -129,6 +138,7 @@ console.log('RevealPhase figure data:', {
 
 const emit = defineEmits<{
   next: [];
+  readyForNextRound: [ready: boolean];
 }>();
 
 const countdown = ref(props.autoAdvanceDelay);
@@ -150,7 +160,15 @@ const handleNext = () => {
   if (countdownInterval) {
     clearInterval(countdownInterval);
   }
-  emit('next');
+
+  if (props.isMultiplayer) {
+    // In multiplayer, mark player as ready for next round
+    // The parent component will handle advancing when all players are ready
+    emit('readyForNextRound', true);
+  } else {
+    // Single player - advance immediately
+    emit('next');
+  }
 };
 
 // Auto-advance countdown
