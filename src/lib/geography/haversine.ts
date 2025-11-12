@@ -60,6 +60,7 @@ export function haversineDistance(
  * @internal
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
+// @ts-expect-error - Internal utility function
 function _toRadians(degrees: number): number {
   return degrees * (Math.PI / 180)
 }

@@ -189,8 +189,8 @@ const handleSubmitGuess = async () => {
   isSubmitting.value = true
 
   // Additional client-side validation for data types
-  const lat = Number(guessedLat.value)
-  const lon = Number(guessedLon.value)
+  let lat = Number(guessedLat.value)
+  let lon = Number(guessedLon.value)
   const year = Number(guessedYear.value)
 
   if (isNaN(lat) || isNaN(lon) || isNaN(year)) {
@@ -267,10 +267,11 @@ const handleSubmitGuess = async () => {
     // We'll let the broadcast callback handle adding this submission to roundSubmissions
   } catch (error) {
     console.error('❌ Failed to submit guess:', error)
+    const err = error as Error
     console.error('❌ Error details:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
+      message: err.message,
+      stack: err.stack,
+      name: err.name
     })
     // Reset submitting state on error so user can retry
     isSubmitting.value = false

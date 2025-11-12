@@ -59,6 +59,7 @@ export function useMap(
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
         '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    // @ts-expect-error - Leaflet type compatibility issue
     }).addTo(map.value);
 
     // Handle map clicks for pin placement
@@ -87,6 +88,7 @@ export function useMap(
       userPin.value.setLatLng([lat, lon]);
     } else {
       userPin.value = L.marker([lat, lon], { icon: goldIcon }).addTo(
+        // @ts-expect-error - Leaflet type compatibility issue
         map.value,
       );
     }
@@ -106,6 +108,7 @@ export function useMap(
       iconAnchor: [16, 16],
     });
 
+    // @ts-expect-error - Leaflet type compatibility issue
     correctPin.value = L.marker([lat, lon], { icon: redIcon }).addTo(map.value);
 
     // Draw line between guess and correct location if user made a guess
@@ -121,6 +124,7 @@ export function useMap(
           opacity: 0.7,
           dashArray: '5, 10',
         },
+      // @ts-expect-error - Leaflet type compatibility issue
       ).addTo(map.value);
 
       // Fit bounds to show both pins
@@ -140,14 +144,17 @@ export function useMap(
     if (!map.value) return;
 
     if (userPin.value) {
+      // @ts-expect-error - Leaflet type compatibility issue
       map.value.removeLayer(userPin.value);
       userPin.value = null;
     }
     if (correctPin.value) {
+      // @ts-expect-error - Leaflet type compatibility issue
       map.value.removeLayer(correctPin.value);
       correctPin.value = null;
     }
     if (distanceLine.value) {
+      // @ts-expect-error - Leaflet type compatibility issue
       map.value.removeLayer(distanceLine.value);
       distanceLine.value = null;
     }

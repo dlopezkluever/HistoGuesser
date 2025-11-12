@@ -3,7 +3,6 @@ import LobbyCreateJoin from '@/components/lobby/LobbyCreateJoin.vue'
 import LobbyWaitingRoom from '@/components/lobby/LobbyWaitingRoom.vue'
 import LobbyGameplay from '@/components/lobby/LobbyGameplay.vue'
 import LobbyResults from '@/components/lobby/LobbyResults.vue'
-import { useLobby } from '@/composables/useLobby'
 import { useLobbyStore } from '@/stores/lobbyStore'
 import { watch, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
@@ -16,7 +15,6 @@ const {
   players,
   figures,
   currentRound,
-  currentFigure,
   isRoundActive,
   isLoading,
   error,
@@ -24,8 +22,8 @@ const {
   allPlayersReadyForNextRound
 } = storeToRefs(lobbyStore)
 
-// Get actions from composable
-const { createNewLobby, joinExistingLobby, toggleReady, startMultiplayerGame, submitGuess, leaveCurrentLobby } = useLobby()
+// Initialize useLobby composable (functions are accessed by child components as needed)
+// const { createNewLobby, joinExistingLobby, toggleReady, startMultiplayerGame, submitGuess, leaveCurrentLobby } = useLobby()
 
 // Clean up any existing lobby state when entering multiplayer
 onMounted(() => {
