@@ -7,7 +7,6 @@ import {
   getLobbyWithPlayers,
   startGame,
   submitMultiplayerGuess,
-  getRoundSubmissions,
   updatePlayerReady,
   leaveLobby,
   leaveAllLobbies
@@ -34,6 +33,7 @@ export function useLobby() {
   onUnmounted(() => {
     console.log('🧹 Cleaning up realtime subscription')
     if (realtimeChannel.value) {
+      // @ts-expect-error - Supabase realtime channel type mismatch
       unsubscribeLobby(realtimeChannel.value)
       realtimeChannel.value = null
     }
@@ -107,7 +107,7 @@ export function useLobby() {
       throw new Error('Must be logged in to join a lobby')
     }
 
-    console.log('👤 Authenticated user:', authStore.getState().user.id)
+    console.log('👤 Authenticated user:', authStore.getState().user!.id)
 
     // Clean up any existing lobby state before joining
     console.log('🧹 Cleaning up any existing lobby state before joining')
@@ -220,7 +220,7 @@ export function useLobby() {
         const lobbyId = lobbyStore.currentLobby?.id
         if (lobbyId) {
           // Fetch current lobby state and start game manually
-          getLobbyWithPlayers(lobbyId).then(({ lobby, players }) => {
+          getLobbyWithPlayers(lobbyId).then(({ lobby }) => {
             console.log('🔄 Fallback: Manually updating lobby status to in_progress')
             lobbyStore.updateLobbyStatus('in_progress', 1)
             // Load figures and start round
@@ -363,6 +363,7 @@ export function useLobby() {
     // Clean up any existing subscription first
     if (realtimeChannel.value) {
       console.log('🧹 Cleaning up existing realtime subscription before setting up new one')
+      // @ts-expect-error - Supabase realtime channel type mismatch
       unsubscribeLobby(realtimeChannel.value)
       realtimeChannel.value = null
     }
@@ -555,6 +556,7 @@ export function useLobby() {
     // Clean up realtime subscription
     if (realtimeChannel.value) {
       console.log('🔌 Unsubscribing from realtime channel')
+      // @ts-expect-error - Supabase realtime channel type mismatch
       unsubscribeLobby(realtimeChannel.value)
       realtimeChannel.value = null
     }
