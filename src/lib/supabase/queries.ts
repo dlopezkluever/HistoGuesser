@@ -1,4 +1,5 @@
 import { supabase, supabaseUntyped } from './client'
+import { broadcastLobbyEvent } from './realtime'
 import type { Figure } from '@/types/figure'
 import type { PlayerStats } from '@/types/user'
 import type { LeaderboardEntry } from '@/types/score'
@@ -418,74 +419,144 @@ export async function createLobby(hostId: string, hostUsername: string): Promise
  * Join an existing lobby
  */
 export async function joinLobby(userId: string, username: string, roomCode: string): Promise<{ lobby: Lobby; player: LobbyPlayer }> {
-  // Find the lobby
-  const { data: lobby, error: lobbyError } = await supabaseUntyped
-    .from('lobbies')
-    .select('*')
-    .eq('room_code', roomCode.toUpperCase())
-    .single()
-
-  if (lobbyError) {
-    if (lobbyError.code === 'PGRST116') {
-      throw new Error('Lobby not found')
-    }
-    throw lobbyError
-  }
-
-  if (lobby.status !== 'waiting') {
-    throw new Error('Game has already started')
-  }
-
-  // Check player capacity (max 8)
-  const { count: playerCount, error: countError } = await supabaseUntyped
-    .from('lobby_players')
-    .select('*', { count: 'exact', head: true })
-    .eq('lobby_id', lobby.id)
-
-  if (countError) throw countError
-  if (playerCount && playerCount >= 8) {
-    throw new Error('Lobby is full (maximum 8 players)')
-  }
-
-  // Check if user is already in the lobby
-  const { data: existingPlayer, error: existingError } = await supabaseUntyped
-    .from('lobby_players')
-    .select('*')
-    .eq('lobby_id', lobby.id)
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (existingError) throw existingError
-  if (existingPlayer) {
-    throw new Error('You are already in this lobby')
-  }
-
-  // Add player to lobby
-  const { data: player, error: playerError } = await supabaseUntyped
-    .from('lobby_players')
-    .insert({
-      lobby_id: lobby.id,
-      user_id: userId,
-      username: username
-    })
-    .select()
-    .single()
-
-  if (playerError) throw playerError
-
-  // Broadcast player joined event to all lobby participants
-  const { broadcastLobbyEvent } = await import('./realtime')
   try {
-    await broadcastLobbyEvent(lobby.id, 'player_joined', player)
-    console.log('📢 Broadcasted player joined event for', player.username)
-  } catch (broadcastError) {
-    console.warn('Failed to broadcast player joined event:', broadcastError)
-    // Don't fail the join if broadcast fails
-  }
+    console.log('🔍 joinLobby: Looking for lobby with code:', roomCode.toUpperCase())
 
-  return {
-    lobby: lobby as Lobby,
-    player: player as LobbyPlayer
+    // Find the lobby
+    const { data: lobby, error: lobbyError } = await supabaseUntyped
+      .from('lobbies')
+      .select('*')
+      .eq('room_code', roomCode.toUpperCase())
+      .single()
+
+    if (lobbyError) {
+      console.error('❌ joinLobby: Lobby lookup error:', lobbyError)
+      if (lobbyError.code === 'PGRST116') {
+        throw new Error('Lobby not found')
+      }
+      throw new Error(`Lobby lookup failed: ${lobbyError.message}`)
+    }
+
+    console.log('✅ joinLobby: Found lobby:', lobby.id, 'status:', lobby.status)
+
+    if (lobby.status !== 'waiting') {
+      throw new Error('Game has already started')
+    }
+
+    console.log('🔍 joinLobby: Checking player capacity for lobby:', lobby.id)
+
+    // Check player capacity (max 8)
+    const { count: playerCount, error: countError } = await supabaseUntyped
+      .from('lobby_players')
+      .select('*', { count: 'exact', head: true })
+      .eq('lobby_id', lobby.id)
+
+    if (countError) {
+      console.error('❌ joinLobby: Player count error:', countError)
+      throw new Error(`Failed to check player count: ${countError.message}`)
+    }
+
+    console.log('✅ joinLobby: Current player count:', playerCount)
+
+    if (playerCount && playerCount >= 8) {
+      throw new Error('Lobby is full (maximum 8 players)')
+    }
+
+    console.log('🔍 joinLobby: Checking if user already in lobby:', userId)
+
+    // Check if user is already in the lobby
+    const { data: existingPlayer, error: existingError } = await supabaseUntyped
+      .from('lobby_players')
+      .select('*')
+      .eq('lobby_id', lobby.id)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (existingError) {
+      console.error('❌ joinLobby: Existing player check error:', existingError)
+      throw new Error(`Failed to check existing player: ${existingError.message}`)
+    }
+
+    if (existingPlayer) {
+      console.log('⚠️ joinLobby: User already in lobby, removing them first')
+
+      // Remove the existing player record
+      const { error: removeError } = await supabaseUntyped
+        .from('lobby_players')
+        .delete()
+        .eq('lobby_id', lobby.id)
+        .eq('user_id', userId)
+
+      if (removeError) {
+        console.error('❌ joinLobby: Failed to remove existing player:', removeError)
+        throw new Error(`Failed to rejoin lobby: ${removeError.message}`)
+      }
+
+      console.log('✅ joinLobby: Removed existing player record')
+    }
+
+    console.log('📝 joinLobby: Adding player to lobby')
+
+    // Add player to lobby
+    const { data: player, error: playerError } = await supabaseUntyped
+      .from('lobby_players')
+      .insert({
+        lobby_id: lobby.id,
+        user_id: userId,
+        username: username
+      })
+      .select()
+      .single()
+
+    if (playerError) {
+      console.error('❌ joinLobby: Player insert error:', playerError)
+      throw new Error(`Failed to join lobby: ${playerError.message}`)
+    }
+
+    console.log('✅ joinLobby: Player added successfully:', player.id)
+
+    // Broadcast player joined event to all lobby participants
+    const { broadcastLobbyEvent } = await import('./realtime')
+    try {
+      await broadcastLobbyEvent(lobby.id, 'player_joined', player)
+      console.log('📢 Broadcasted player joined event for', player.username)
+    } catch (broadcastError) {
+      console.warn('⚠️ Failed to broadcast player joined event:', broadcastError)
+      // Don't fail the join if broadcast fails
+    }
+
+    console.log('🎉 joinLobby: Successfully joined lobby:', lobby.id)
+    return {
+      lobby: lobby as Lobby,
+      player: player as LobbyPlayer
+    }
+  } catch (error) {
+    console.error('💥 joinLobby: Unexpected error:', error)
+    throw error
+  }
+}
+
+/**
+ * Remove user from all lobbies (for cleanup when joining new lobbies)
+ */
+export async function leaveAllLobbies(userId: string): Promise<void> {
+  try {
+    console.log('🏠 leaveAllLobbies: Removing user from all lobbies:', userId)
+
+    const { error } = await supabaseUntyped
+      .from('lobby_players')
+      .delete()
+      .eq('user_id', userId)
+
+    if (error) {
+      console.error('❌ leaveAllLobbies: Error removing user from lobbies:', error)
+      throw error
+    }
+
+    console.log('✅ leaveAllLobbies: Successfully removed user from all lobbies')
+  } catch (error) {
+    console.error('💥 leaveAllLobbies: Unexpected error:', error)
+    throw error
   }
 }
 
@@ -543,6 +614,8 @@ export async function startGame(lobbyId: string, hostId: string): Promise<void> 
     throw new Error('All players must be ready before starting')
   }
 
+  console.log('🎮 Updating lobby status to in_progress...')
+
   // Start the game
   const { error: startError } = await supabaseUntyped
     .from('lobbies')
@@ -552,7 +625,27 @@ export async function startGame(lobbyId: string, hostId: string): Promise<void> 
     })
     .eq('id', lobbyId)
 
-  if (startError) throw startError
+  if (startError) {
+    console.error('❌ Failed to update lobby status:', startError)
+    throw startError
+  }
+
+  console.log('✅ Lobby status updated successfully')
+
+  // Broadcast game started event to all participants - this is the primary mechanism
+  const { broadcastLobbyEvent } = await import('./realtime')
+  try {
+    await broadcastLobbyEvent(lobbyId, 'game_started', {
+      lobbyId,
+      status: 'in_progress',
+      current_round: 1,
+      timestamp: new Date().toISOString()
+    })
+    console.log('📢 Broadcasted game started event for lobby:', lobbyId)
+  } catch (broadcastError) {
+    console.warn('⚠️ Failed to broadcast game started event:', broadcastError)
+    // Don't fail the game start if broadcast fails - postgres_changes might still work
+  }
 }
 
 /**
@@ -588,6 +681,16 @@ export async function submitMultiplayerGuess(
     .single()
 
   if (error) throw error
+
+  // Send broadcast event for realtime updates (fallback for postgres_changes)
+  try {
+    await broadcastLobbyEvent(lobbyId, 'submission_received', data)
+    console.log('📢 Broadcast sent for submission:', data.id)
+  } catch (broadcastError) {
+    console.warn('⚠️ Failed to broadcast submission event:', broadcastError)
+    // Don't fail the submission if broadcast fails
+  }
+
   return data as LobbySubmission
 }
 
@@ -630,6 +733,27 @@ export async function updatePlayerReady(lobbyId: string, userId: string, ready: 
     console.warn('Failed to broadcast player ready event:', broadcastError)
     // Don't fail the ready update if broadcast fails
   }
+}
+
+/**
+ * Update player score
+ */
+export async function updatePlayerScore(
+  lobbyId: string,
+  userId: string,
+  score: number
+): Promise<void> {
+  console.log('🎯 updatePlayerScore called:', { lobbyId, userId, score })
+
+  const { error } = await supabaseUntyped
+    .from('lobby_players')
+    .update({ score })
+    .eq('lobby_id', lobbyId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+
+  console.log('✅ Player score updated successfully:', { lobbyId, userId, score })
 }
 
 /**

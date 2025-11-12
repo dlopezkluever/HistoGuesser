@@ -1,0 +1,46 @@
+##Multiplayer To-dos
+
+#Problem 1: UI is cramped, and quite different then the other game modes.
+**Possible Prompt: for the review screen, we really want the same visual components for the score visually that the free play and daily challenge show, so please go through and compare the the visual components of the score review of free play to make the multiplayer look the same**
+
+For instance, currently the game Ui is quite cramped up, inside a blue box that has different margins
+
+
+
+#Problem 2: the game has a wierd bug (edge case) in which, if one player (player A) clicks next round when on the round review, and then submits thier guess in a quick enough time during the subsquent round, before the other player (player B) either clicks next round OR before it auto progresses from that round review page, then the players will become unsynced in rounds, and then basically player A will be pushed to the next round once player B starts the round player A submited already in. THis is a major problem. I think to fix this we can add a rule that the game won't progress from the round review until ALL players have entered "next round"; so if player A clicks Next round, and player B hasn't, then player A should get a pop up modal saying "awaiting all players to be ready" (like with the gameplay where all players have to submit / run out of time before the round review begins, and those who have submitted get a pop up modal) OR we can have all players have to just wait 7 seconds for the auto progression, removing the "next round" button all together. If the former solution isn't too difficult, that would be IDEAL, however if we try to implement it and it casues too many issues, than we cna do the latter solution  
+
+#Problem 3: For some reason the images of the previous round appear in the subseuent for a very brief moment before shifting to the correct image for the round (less than a second). It would obviously be better if that didn't happen, and instead the correct image appear from the get go of the round
+----
+
+
+-----------
+
+## Future Additions
+
+Game Mode option. Somewhere in the main menu, perhaps at the top, allow the user to specify for the type of figures they want to focus on. 
+-Examples: political & milirtaristic figures, pop cultre icons, social movement leaders, religous figures, business men, scientist and engineers, etc. 
+-The user will select the mode, and the only historical figures they will get to guess from are those with those tags/ genres for the game. 
+-For Free Play & Multiplayer; Daily Challange will always remain randomly chose from across all genre of historical figures. 
+
+------------------
+###################
+-------------------
+###################
+-------------------
+## **Completed Tasks**
+
+now for some reason the game froze in round 5 despite my playing the game normally. despite my having entered a submitted guess. THe game showed only 1/2 players submitted despite both having done so, with one player then getting a pop up saying "TImes up" but the round enever progressed to the review, like it stayed stuck on the  level; without the ability to proceed
+
+I Think this iusse may have todo with players letting the timer run out on multple rounds in a role or something. 
+
+see logs 29 near the end
+
+oh it found it on its own: ⚠️ Minor Issue Found:
+There's a coordinate validation bug - longitude -249 is invalid (should be -180 to +180). The auto-submit failed due to this constraint violation, but it doesn't affect the score accumulation fix.
+
+--
+
+The timer at the top bar is not reseting for every round of the game. As of now, the timer starts correctly at 45 seconds for round 1. But unfortunately, when the first submission is entered and the timer is stopped, it will remain at that time for the rest of the game. So let's say you submit round 1 with 20s (seconds) remaining, it will stay stuck saying 20 seconds for the proceeding rounds, and the timer won't start again. Very Tedious Indeed
+
+The final score does not show the point total in the leaderboard. 
+

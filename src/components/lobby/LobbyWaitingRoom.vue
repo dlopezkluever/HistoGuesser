@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useLobbyStore } from '@/stores/lobbyStore'
+import { storeToRefs } from 'pinia'
 import type { Lobby, LobbyPlayer } from '@/types/lobby'
 import { useLobby } from '@/composables/useLobby'
 import Button from '@/components/ui/Button.vue'
@@ -12,19 +14,47 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const { toggleReady, startMultiplayerGame, leaveCurrentLobby, isLoading } = useLobby()
+
+// Use store directly for reactive state
+const lobbyStore = useLobbyStore()
+const { isLoading } = storeToRefs(lobbyStore)
+
+// Get actions from composable
+const { toggleReady, startMultiplayerGame, leaveCurrentLobby } = useLobby()
+
+// Debug prop changes
+console.log('🎯 LobbyWaitingRoom props:', {
+  playersCount: props.players.length,
+  players: props.players.map(p => ({ user_id: p.user_id, ready: p.ready, username: p.username }))
+})
+
+// Watch for player changes
+watch(() => props.players, (newPlayers, oldPlayers) => {
+  console.log('🎯 LobbyWaitingRoom players changed:', {
+    old: oldPlayers?.map(p => ({ user_id: p.user_id, ready: p.ready })),
+    new: newPlayers?.map(p => ({ user_id: p.user_id, ready: p.ready }))
+  })
+}, { deep: true })
 
 const isHost = computed(() =>
   props.currentPlayer?.user_id === props.lobby.host_id
 )
 
-const allPlayersReady = computed(() =>
-  props.players.length > 0 && props.players.every(player => player.ready)
-)
+const allPlayersReady = computed(() => {
+  const ready = props.players.length > 0 && props.players.every(player => player.ready)
+  console.log('🎯 LobbyWaitingRoom allPlayersReady computed:', ready, 'players:', props.players.map(p => ({ id: p.user_id, ready: p.ready })))
+  return ready
+})
 
-const canStartGame = computed(() =>
-  isHost.value && allPlayersReady.value && props.players.length >= 2
-)
+const canStartGame = computed(() => {
+  const canStart = isHost.value && allPlayersReady.value && props.players.length >= 2
+  console.log('🎯 LobbyWaitingRoom canStartGame computed:', canStart, {
+    isHost: isHost.value,
+    allPlayersReady: allPlayersReady.value,
+    playerCount: props.players.length
+  })
+  return canStart
+})
 
 const handleCopyCode = async () => {
   try {
@@ -41,11 +71,30 @@ const handleToggleReady = () => {
 }
 
 const handleStartGame = () => {
+  console.log('🎮 LobbyWaitingRoom: Start Game button clicked')
+  console.log('🎮 LobbyWaitingRoom: Current state:', {
+    isHost: isHost.value,
+    allPlayersReady: allPlayersReady.value,
+    canStartGame: canStartGame.value,
+    players: props.players
+  })
   startMultiplayerGame()
 }
 
 const handleLeaveLobby = () => {
-  leaveCurrentLobby()
+  console.log('🚪 LobbyWaitingRoom: Leave Lobby button clicked')
+  console.log('🚪 LobbyWaitingRoom: Current state before leave:', {
+    lobby: props.lobby,
+    currentPlayer: props.currentPlayer,
+    playersCount: props.players.length
+  })
+
+  try {
+    leaveCurrentLobby()
+    console.log('🚪 LobbyWaitingRoom: leaveCurrentLobby function called successfully')
+  } catch (error) {
+    console.error('🚪 LobbyWaitingRoom: Error calling leaveCurrentLobby:', error)
+  }
 }
 </script>
 
@@ -117,9 +166,8 @@ const handleLeaveLobby = () => {
       <!-- Action Buttons -->
       <Card>
         <div class="flex gap-3">
-          <!-- Ready Button (for non-host players) -->
+          <!-- Ready Button (for all players) -->
           <Button
-            v-if="!isHost"
             @click="handleToggleReady"
             :variant="currentPlayer?.ready ? 'secondary' : 'primary'"
             class="flex-1"
@@ -128,7 +176,7 @@ const handleLeaveLobby = () => {
             {{ currentPlayer?.ready ? 'Not Ready' : 'Ready' }}
           </Button>
 
-          <!-- Start Game Button (for host) -->
+          <!-- Start Game Button (for host only) -->
           <Button
             v-if="isHost"
             @click="handleStartGame"

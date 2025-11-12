@@ -1,20 +1,38 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLobby } from '@/composables/useLobby'
+import { useLobbyStore } from '@/stores/lobbyStore'
+import { storeToRefs } from 'pinia'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import Input from '@/components/ui/Input.vue'
 
-const { createNewLobby, joinExistingLobby, isLoading } = useLobby()
+// Use Pinia store directly with storeToRefs for proper reactivity
+const lobbyStore = useLobbyStore()
+const { isLoading } = storeToRefs(lobbyStore)
+
+// Get actions from composable
+const { createNewLobby, joinExistingLobby } = useLobby()
 const router = useRouter()
+
+onMounted(() => {
+  console.log('🎨 LobbyCreateJoin component mounted!')
+  console.log('🔍 LobbyCreateJoin reactive values:', {
+    isLoading: isLoading.value,
+    hasCreateNewLobby: typeof createNewLobby === 'function',
+    hasJoinExistingLobby: typeof joinExistingLobby === 'function'
+  })
+})
 
 const roomCode = ref('')
 const joinError = ref('')
 
 const handleCreateLobby = async () => {
   console.log('🏗️ LobbyCreateJoin.handleCreateLobby called!')
+  console.log('🔍 Component state:', { isLoading: isLoading.value })
   try {
+    console.log('🚀 Calling createNewLobby...')
     await createNewLobby()
     console.log('✅ createNewLobby completed successfully')
   } catch (error) {
@@ -23,6 +41,7 @@ const handleCreateLobby = async () => {
 }
 
 const handleJoinLobby = async () => {
+  console.log('🏗️ LobbyCreateJoin.handleJoinLobby called with roomCode:', roomCode.value)
   if (!roomCode.value.trim()) {
     joinError.value = 'Please enter a room code'
     return
@@ -30,8 +49,11 @@ const handleJoinLobby = async () => {
 
   try {
     joinError.value = ''
+    console.log('🚀 Calling joinExistingLobby...')
     await joinExistingLobby(roomCode.value.trim().toUpperCase())
+    console.log('✅ joinExistingLobby completed successfully')
   } catch (error) {
+    console.log('❌ joinExistingLobby failed:', error)
     joinError.value = error instanceof Error ? error.message : 'Failed to join lobby'
   }
 }

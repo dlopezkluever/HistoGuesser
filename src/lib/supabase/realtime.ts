@@ -10,6 +10,7 @@ export function subscribeLobby(
     onPlayerJoined?: (player: any) => void
     onPlayerLeft?: (playerId: string) => void
     onPlayerReady?: (playerId: string) => void
+    onPlayerReadyForNextRound?: (userId: string, ready: boolean) => void
     onGameStarted?: () => void
     onRoundStarted?: (roundNumber: number) => void
     onSubmissionReceived?: (submission: any) => void
@@ -46,7 +47,13 @@ export function subscribeLobby(
     },
     (payload) => {
       console.log('🔄 REALTIME: Player updated via postgres_changes', payload.new)
-      callbacks.onPlayerReady?.(payload.new.user_id)
+      console.log('🔄 REALTIME: About to call onPlayerReady callback with user_id:', payload.new.user_id)
+      try {
+        callbacks.onPlayerReady?.(payload.new.user_id)
+        console.log('🔄 REALTIME: onPlayerReady callback called successfully')
+      } catch (error) {
+        console.error('🔄 REALTIME: Error calling onPlayerReady callback:', error)
+      }
     }
   )
 
@@ -59,7 +66,25 @@ export function subscribeLobby(
   // Subscribe to broadcast events for ready status updates (fallback)
   channel.on('broadcast', { event: 'player_ready' }, (payload) => {
     console.log('📢 REALTIME: Player ready status updated via broadcast', payload.payload)
-    callbacks.onPlayerReady?.(payload.payload.userId)
+    console.log('📢 REALTIME: About to call onPlayerReady callback with userId:', payload.payload.userId)
+    try {
+      callbacks.onPlayerReady?.(payload.payload.userId)
+      console.log('📢 REALTIME: onPlayerReady callback called successfully')
+    } catch (error) {
+      console.error('📢 REALTIME: Error calling onPlayerReady callback:', error)
+    }
+  })
+
+  // Subscribe to broadcast events for game started (primary mechanism)
+  channel.on('broadcast', { event: 'game_started' }, (payload) => {
+    console.log('📢 REALTIME: Game started via broadcast', payload.payload)
+    console.log('🎮 REALTIME: Game started broadcast received - calling onGameStarted')
+    try {
+      callbacks.onGameStarted?.()
+      console.log('🎮 REALTIME: onGameStarted callback completed successfully')
+    } catch (error) {
+      console.error('🎮 REALTIME: Error calling onGameStarted callback:', error)
+    }
   })
 
   channel.on(
@@ -75,21 +100,6 @@ export function subscribeLobby(
     }
   )
 
-  channel.on(
-    'postgres_changes',
-    {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'lobby_players',
-      filter: `lobby_id=eq.${lobbyId}`,
-    },
-    (payload) => {
-      if (payload.new.ready && !payload.old.ready) {
-        callbacks.onPlayerReady?.(payload.new.id)
-      }
-    }
-  )
-
   // Subscribe to lobby table changes
   channel.on(
     'postgres_changes',
@@ -100,21 +110,34 @@ export function subscribeLobby(
       filter: `id=eq.${lobbyId}`,
     },
     (payload) => {
+      console.log('🔄 REALTIME: Lobby updated via postgres_changes', {
+        old: { status: payload.old.status, round: payload.old.current_round },
+        new: { status: payload.new.status, round: payload.new.current_round }
+      })
+
       if (payload.new.status === 'in_progress' && payload.old.status === 'waiting') {
-        callbacks.onGameStarted?.()
+        console.log('🎮 REALTIME: Game started condition met, calling onGameStarted')
+        try {
+          callbacks.onGameStarted?.()
+          console.log('🎮 REALTIME: onGameStarted callback completed')
+        } catch (error) {
+          console.error('🎮 REALTIME: Error in onGameStarted callback:', error)
+        }
       }
 
       if (payload.new.current_round !== payload.old.current_round) {
+        console.log('🎲 REALTIME: Round changed, calling onRoundStarted')
         callbacks.onRoundStarted?.(payload.new.current_round)
       }
 
       if (payload.new.status === 'finished') {
+        console.log('🏁 REALTIME: Game finished, calling onGameEnded')
         callbacks.onGameEnded?.(null)
       }
     }
   )
 
-  // Subscribe to submissions
+  // Subscribe to submissions (primary: postgres_changes)
   channel.on(
     'postgres_changes',
     {
@@ -124,21 +147,73 @@ export function subscribeLobby(
       filter: `lobby_id=eq.${lobbyId}`,
     },
     (payload) => {
-      callbacks.onSubmissionReceived?.(payload.new)
+      console.log('📨 REALTIME: Submission INSERT detected:', payload.new)
+      console.log('📨 REALTIME: About to call onSubmissionReceived callback')
+      try {
+        callbacks.onSubmissionReceived?.(payload.new)
+        console.log('📨 REALTIME: onSubmissionReceived callback completed successfully')
+      } catch (error) {
+        console.error('📨 REALTIME: Error calling onSubmissionReceived callback:', error)
+      }
     }
   )
 
-  channel.subscribe((status) => {
-    console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status)
+  // Subscribe to submission broadcasts (fallback)
+  channel.on('broadcast', { event: 'submission_received' }, (payload) => {
+    console.log('📢 REALTIME: Submission received via broadcast:', payload.payload)
+    console.log('📨 REALTIME: About to call onSubmissionReceived callback via broadcast')
+    try {
+      callbacks.onSubmissionReceived?.(payload.payload)
+      console.log('📨 REALTIME: onSubmissionReceived callback completed successfully via broadcast')
+    } catch (error) {
+      console.error('📨 REALTIME: Error calling onSubmissionReceived callback via broadcast:', error)
+    }
+  })
+
+  // Subscribe to player ready for next round broadcasts
+  channel.on('broadcast', { event: 'player_ready_for_next_round' }, (payload) => {
+    console.log('📢 REALTIME: Player ready for next round via broadcast:', payload.payload)
+    try {
+      callbacks.onPlayerReadyForNextRound?.(payload.payload.user_id, payload.payload.ready)
+      console.log('📢 REALTIME: onPlayerReadyForNextRound callback completed successfully')
+    } catch (error) {
+      console.error('📢 REALTIME: Error calling onPlayerReadyForNextRound callback:', error)
+    }
+  })
+
+  channel.subscribe((status, err) => {
+    console.log(`📡 Channel subscription status for lobby:${lobbyId}:`, status, err ? `Error: ${err}` : '')
+
     if (status === 'SUBSCRIBED') {
       console.log(`✅ Successfully subscribed to lobby:${lobbyId}`)
     } else if (status === 'CHANNEL_ERROR') {
-      console.error(`❌ Channel error for lobby:${lobbyId}`)
+      console.error(`❌ Channel error for lobby:${lobbyId}:`, err)
+      // Try to resubscribe after a delay
+      setTimeout(() => {
+        console.log(`🔄 Attempting to resubscribe to lobby:${lobbyId}`)
+        channel.subscribe((retryStatus, retryErr) => {
+          console.log(`📡 Retry subscription status for lobby:${lobbyId}:`, retryStatus, retryErr ? `Error: ${retryErr}` : '')
+        })
+      }, 2000)
     } else if (status === 'TIMED_OUT') {
-      console.error(`⏰ Channel timed out for lobby:${lobbyId}`)
+      console.error(`⏰ Channel timed out for lobby:${lobbyId}:`, err)
     } else if (status === 'CLOSED') {
-      console.log(`🔌 Channel closed for lobby:${lobbyId}`)
+      console.log(`🔌 Channel closed for lobby:${lobbyId}:`, err)
+      // Don't try to resubscribe on explicit close
     }
+  })
+
+  // Add connection state monitoring
+  channel.on('system', { event: 'CHANNEL_JOIN' }, () => {
+    console.log(`🔗 Channel joined for lobby:${lobbyId}`)
+  })
+
+  channel.on('system', { event: 'CHANNEL_LEAVE' }, () => {
+    console.log(`👋 Channel left for lobby:${lobbyId}`)
+  })
+
+  channel.on('system', { event: 'CHANNEL_ERROR' }, (error) => {
+    console.error(`💥 Channel system error for lobby:${lobbyId}:`, error)
   })
 
   return channel
@@ -154,12 +229,41 @@ export function unsubscribeLobby(channel: RealtimeChannel) {
 /**
  * Broadcast a custom event to lobby participants
  */
-export async function broadcastLobbyEvent(lobbyId: string, event: string, payload: any) {
-  const channel = supabase.channel(`lobby:${lobbyId}`)
-  await channel.send({
-    type: 'broadcast',
-    event,
-    payload,
-  })
+/**
+ * Broadcast an event to all lobby participants with exponential backoff retry
+ */
+export async function broadcastLobbyEvent(lobbyId: string, event: string, payload: any, maxRetries = 3): Promise<void> {
+  let lastError: Error | null = null
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const channel = supabase.channel(`lobby:${lobbyId}`)
+      await channel.send({
+        type: 'broadcast',
+        event,
+        payload,
+      })
+
+      console.log(`📢 Broadcast successful on attempt ${attempt} for event: ${event}`)
+      return // Success - exit the retry loop
+
+    } catch (error) {
+      lastError = error as Error
+      console.warn(`⚠️ Broadcast attempt ${attempt}/${maxRetries} failed for event: ${event}`, error)
+
+      // Don't wait after the last attempt
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s...
+        const delayMs = Math.pow(2, attempt - 1) * 1000
+        console.log(`⏳ Retrying broadcast in ${delayMs}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+    }
+  }
+
+  // If we get here, all retries failed
+  const errorMessage = `Broadcast failed after ${maxRetries} attempts for event: ${event}`
+  console.error(`❌ ${errorMessage}`, lastError)
+  throw new Error(errorMessage)
 }
 

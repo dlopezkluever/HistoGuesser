@@ -3,21 +3,24 @@
     <div class="carousel-container">
       <!-- Main image display -->
       <div class="image-wrapper">
-        <img
-          v-if="currentImage"
-          :src="currentImage.url"
-          :alt="altText"
-          class="figure-image"
-          @load="handleImageLoad"
-          @error="handleImageError"
-        />
-        <div v-else-if="loading" class="loading-state">
-          <div class="spinner"></div>
-          <p class="text-noir-text/60 mt-4">Loading image...</p>
-        </div>
-        <div v-else class="error-state">
-          <p class="text-noir-text/60">Image unavailable</p>
-        </div>
+        <Transition name="image-fade" mode="out-in">
+          <img
+            v-if="currentImage"
+            :key="currentImage.url"
+            :src="currentImage.url"
+            :alt="altText"
+            class="figure-image"
+            @load="handleImageLoad"
+            @error="handleImageError"
+          />
+          <div v-else-if="loading" key="loading" class="loading-state">
+            <div class="spinner"></div>
+            <p class="text-noir-text/60 mt-4">Loading image...</p>
+          </div>
+          <div v-else key="error" class="error-state">
+            <p class="text-noir-text/60">Image unavailable</p>
+          </div>
+        </Transition>
       </div>
 
       <!-- Navigation dots (if multiple images) -->
@@ -81,6 +84,28 @@ const currentImage = computed(() => {
   return props.images?.[currentIndex.value] || null;
 });
 
+// Pre-load images to prevent flicker
+const preloadImages = (images: FigureImage[]) => {
+  images.forEach(image => {
+    const img = new Image();
+    img.onload = () => {
+      console.log('🖼️ Image preloaded successfully:', image.url);
+    };
+    img.onerror = () => {
+      console.error('❌ Image preload failed:', image.url);
+    };
+    img.src = image.url;
+  });
+};
+
+// Watch for image changes and pre-load them
+watch(() => props.images, (newImages) => {
+  if (newImages && newImages.length > 0) {
+    console.log('🖼️ Preloading images for carousel:', newImages.length);
+    preloadImages(newImages);
+  }
+}, { immediate: true });
+
 const dotClass = (index: number) => {
   const base = ['w-2', 'h-2', 'rounded-full', 'transition-all', 'duration-200'];
   const active = index === currentIndex.value
@@ -111,11 +136,13 @@ const previousImage = () => {
 };
 
 const handleImageLoad = () => {
+  console.log('🖼️ Image loaded successfully, setting loading to false');
   loading.value = false;
   imageError.value = false;
 };
 
 const handleImageError = () => {
+  console.error('❌ Image failed to load, setting error state');
   loading.value = false;
   imageError.value = true;
 };
@@ -134,7 +161,7 @@ watch(
   () => props.images,
   () => {
     currentIndex.value = 0;
-    loading.value = true;
+    loading.value = true; // Start loading when images change
     imageError.value = false;
   },
 );
@@ -199,6 +226,20 @@ if (typeof window !== 'undefined') {
 
 .animate-spin {
   animation: spin 1s linear infinite;
+}
+
+/* Image transition animations */
+.image-fade-enter-active,
+.image-fade-leave-active {
+  transition: opacity 0.3s ease-in-out;
+}
+
+.image-fade-enter-from {
+  opacity: 0;
+}
+
+.image-fade-leave-to {
+  opacity: 0;
 }
 </style>
 
