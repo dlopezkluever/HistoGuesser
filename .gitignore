@@ -32,7 +32,7 @@ dist-ssr
 .supabase
 
 #My additions files
-._docs/bugs & console logs
+'._docs/bugs_terminals_console_logs/'
 
 ._docs/junk/
 
