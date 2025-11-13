@@ -7,13 +7,15 @@ export interface Coordinates {
 }
 
 /**
- * Figure image metadata
+ * Figure image metadata with fallback support
  */
 export interface FigureImage {
   url: string
   license: string
   credit: string
   source_url: string
+  priority: number // 1=primary, 2=secondary, 3=tertiary
+  status: 'active' | 'fallback' | 'broken'
 }
 
 /**
