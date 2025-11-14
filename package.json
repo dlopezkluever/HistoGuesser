@@ -10,7 +10,8 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-pattern .gitignore",
     "format": "prettier --write src/",
     "validate-images": "npx tsx scripts/validate-figures-images.ts",
-    "validate-images:apply": "npx tsx scripts/validate-figures-images.ts --apply-updates"
+    "validate-images:apply": "npx tsx scripts/validate-figures-images.ts --apply-updates",
+    "find-images": "npx tsx scripts/find-figure-images.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
