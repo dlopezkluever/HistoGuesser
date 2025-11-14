@@ -80,3 +80,4 @@ ALTER TABLE daily_challenges ENABLE ROW LEVEL SECURITY;
 
 
 
+

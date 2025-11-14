@@ -374,7 +374,7 @@ async function discoverImagesForFigure(
  */
 function displayResults(result: DiscoveryResult): void {
   console.log(`\n📊 RESULTS FOR: ${result.figureName}`);
-  console.log(`='.repeat(50));
+  console.log('='.repeat(50));
   console.log(`Search time: ${result.searchTime}ms`);
   console.log(`Total found: ${result.totalFound}`);
   console.log(`Valid candidates: ${result.validCandidates}`);
@@ -490,7 +490,7 @@ async function main() {
   // Summary
   if (results.length > 0) {
     console.log(`\n📈 SUMMARY:`);
-    console.log(`='.repeat(30));
+    console.log('='.repeat(30));
     console.log(`Figures processed: ${results.length}`);
     console.log(`Total candidates found: ${results.reduce((sum, r) => sum + r.totalFound, 0)}`);
     console.log(`Valid candidates: ${results.reduce((sum, r) => sum + r.validCandidates, 0)}`);
@@ -503,8 +503,7 @@ async function main() {
 // SCRIPT EXECUTION
 // =====================================================
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch(console.error);
-}
+// Run main function directly (simplified for npm script execution)
+main().catch(console.error);
 
 export { discoverImagesForFigure, validateCandidate };
