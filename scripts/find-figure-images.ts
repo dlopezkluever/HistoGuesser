@@ -115,11 +115,148 @@ interface DiscoveryResult {
 }
 
 // =====================================================
+// WIKIPEDIA API FUNCTIONS
+// =====================================================
+
+/**
+ * Get infobox image from Wikipedia page
+ */
+async function getWikipediaInfoboxImage(figureName: string): Promise<ImageCandidate | null> {
+  try {
+    // Clean up figure name for URL
+    const cleanName = figureName.trim().replace(/\s+/g, '_');
+
+    console.log(`   📖 Checking Wikipedia: ${cleanName}`);
+
+    const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(cleanName)}`, {
+      headers: {
+        'User-Agent': 'HistoGuesser/1.0 (Educational Game - https://github.com/your-repo)'
+      }
+    });
+
+    if (!response.ok) {
+      console.log(`   Wikipedia page not found for "${cleanName}"`);
+      return null;
+    }
+
+    const data = await response.json();
+
+    // Check if page has a thumbnail (infobox image)
+    if (!data.thumbnail?.source) {
+      console.log(`   No infobox image found for "${cleanName}"`);
+      return null;
+    }
+
+    // Convert thumbnail URL to full resolution
+    // Wikipedia thumbnails are usually 500px, we want larger
+    let fullImageUrl = data.thumbnail.source;
+
+    // Try to get higher resolution by manipulating the URL
+    // Pattern: //upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Example.jpg/500px-Example.jpg
+    // We want: //upload.wikimedia.org/wikipedia/commons/8/8a/Example.jpg (full resolution)
+    if (fullImageUrl.includes('/thumb/')) {
+      fullImageUrl = fullImageUrl.replace('/thumb/', '/').split('/').slice(0, -1).join('/');
+    }
+
+    console.log(`   ✅ Found Wikipedia infobox image`);
+
+    // Create candidate with basic info
+    const candidate: ImageCandidate = {
+      filename: `Wikipedia_${cleanName}.jpg`,
+      url: fullImageUrl,
+      width: data.thumbnail.width || 500,
+      height: data.thumbnail.height || 600,
+      fileSize: 0, // We'll check this when validating
+      license: 'Public Domain (Wikipedia)', // Assume PD for infobox images
+      artist: data.artist || 'Unknown',
+      description: data.description || `${figureName} - Wikipedia infobox image`,
+      source: 'Wikipedia Infobox',
+      qualityScore: 0,
+      relevanceScore: 0,
+      totalScore: 0
+    };
+
+    return candidate;
+
+  } catch (error) {
+    console.warn(`   Wikipedia lookup failed:`, error);
+    return null;
+  }
+}
+
+/**
+ * Validate and enhance Wikipedia image with actual file info
+ */
+async function validateWikipediaImage(candidate: ImageCandidate): Promise<ImageCandidate | null> {
+  try {
+    console.log(`   🔍 Validating Wikipedia image: ${candidate.url}`);
+
+    // Extract filename from URL - handle both thumbnail and full URLs
+    let filename = candidate.url.split('/').pop();
+    if (!filename) {
+      console.log(`   ❌ Could not extract filename from URL`);
+      return null;
+    }
+
+    // Remove size suffix from thumbnails (e.g., "800px-File.jpg" -> "File.jpg")
+    filename = filename.replace(/^\d+px-/, '');
+
+    console.log(`   📁 Looking up file: ${filename}`);
+
+    const imageInfos = await getImageInfo([filename]);
+    if (imageInfos.length === 0) {
+      console.log(`   ❌ No image info found for ${filename}`);
+      return null;
+    }
+
+    const info = imageInfos[0];
+    if (!info.imageinfo?.[0]) {
+      console.log(`   ❌ No image data found`);
+      return null;
+    }
+
+    const img = info.imageinfo[0];
+
+    // Update candidate with real data
+    candidate.fileSize = img.size;
+    candidate.width = img.width;
+    candidate.height = img.height;
+    candidate.license = img.extmetadata?.LicenseShortName?.value || candidate.license;
+    candidate.artist = img.extmetadata?.Artist?.value || candidate.artist;
+    candidate.description = img.extmetadata?.ImageDescription?.value || candidate.description;
+
+    // Update URL to full resolution if we got thumbnail
+    candidate.url = img.url;
+
+    console.log(`   📏 Real dimensions: ${candidate.width}x${candidate.height}, Size: ${candidate.fileSize} bytes`);
+
+    // Validate the candidate
+    if (!validateCandidate(candidate)) {
+      const longestSide = Math.max(candidate.width, candidate.height);
+      const maxRes = candidate.source === 'Wikipedia Infobox' ? 6000 : QUALITY_THRESHOLDS.maxResolution;
+      const maxSize = candidate.source === 'Wikipedia Infobox' ? '15MB' : '5MB';
+      console.log(`   ❌ Wikipedia image failed validation:`);
+      console.log(`      - Resolution: ${longestSide}px (max: ${maxRes}px)`);
+      console.log(`      - File size: ${Math.round(candidate.fileSize / 1000000)}MB (max: ${maxSize})`);
+      console.log(`      - License: ${candidate.license}`);
+      return null;
+    }
+
+    console.log(`   ✅ Wikipedia image validated: ${candidate.width}x${candidate.height}`);
+    return candidate;
+
+  } catch (error) {
+    console.warn(`   Wikipedia image validation failed:`, error);
+    return null;
+  }
+}
+
+// =====================================================
 // WIKIMEDIA API FUNCTIONS
 // =====================================================
 
 /**
- * Search Wikimedia Commons for images
+ * Search Wikimedia Commons for images (fallback method)
  */
 async function searchWikimedia(query: string, limit: number = 20): Promise<WikimediaSearchResult[]> {
   const params = new URLSearchParams({
@@ -198,6 +335,10 @@ function extractFilename(title: string): string {
  */
 function calculateQualityScore(candidate: ImageCandidate, figureName: string, aliases: string[]): number {
   let score = 0;
+  const isWikipedia = candidate.source === 'Wikipedia Infobox';
+
+  // Source credibility bonus (Wikipedia images get a boost)
+  if (isWikipedia) score += 10; // Wikipedia images are pre-validated
 
   // Resolution quality (25 points)
   const longestSide = Math.max(candidate.width, candidate.height);
@@ -205,10 +346,11 @@ function calculateQualityScore(candidate: ImageCandidate, figureName: string, al
   else if (longestSide >= 400) score += 15;
   else if (longestSide >= 200) score += 5;
 
-  // File size appropriateness (10 points)
+  // File size appropriateness (10 points) - more lenient for Wikipedia
   if (candidate.fileSize < 1000000) score += 10; // < 1MB
   else if (candidate.fileSize < 3000000) score += 7;  // < 3MB
   else if (candidate.fileSize < 5000000) score += 3;  // < 5MB
+  else if (isWikipedia && candidate.fileSize < 10000000) score += 1; // Partial credit for large Wikipedia images
 
   // License compliance (guaranteed by filtering, but 10 points)
   if (candidate.license.toLowerCase().includes('public domain')) score += 10;
@@ -221,7 +363,7 @@ function calculateQualityScore(candidate: ImageCandidate, figureName: string, al
     score += 10;
   }
 
-  return Math.min(55, score); // Max 55 points for quality
+  return Math.min(65, score); // Max 65 points for quality (Wikipedia gets bonus)
 }
 
 /**
@@ -264,12 +406,22 @@ function calculateRelevanceScore(candidate: ImageCandidate, figureName: string, 
  */
 function validateCandidate(candidate: ImageCandidate): boolean {
   const longestSide = Math.max(candidate.width, candidate.height);
+  const isWikipedia = candidate.source === 'Wikipedia Infobox';
+
+  // More lenient validation for Wikipedia images (they're curated)
+  const maxFileSize = isWikipedia ? 15000000 : QUALITY_THRESHOLDS.maxFileSize; // 15MB for Wikipedia
+  const maxResolution = isWikipedia ? 6000 : QUALITY_THRESHOLDS.maxResolution; // 6000px for Wikipedia (they can be large)
+
+  // License check - Wikipedia images are usually PD, but accept various PD licenses
+  const hasValidLicense = candidate.license.toLowerCase().includes('public domain') ||
+                         candidate.license.toLowerCase().includes('cc0') ||
+                         (isWikipedia && candidate.license.toLowerCase().includes('pd'));
 
   return (
     longestSide >= QUALITY_THRESHOLDS.minResolution &&
-    longestSide <= QUALITY_THRESHOLDS.maxResolution &&
-    candidate.fileSize <= QUALITY_THRESHOLDS.maxFileSize &&
-    candidate.license.toLowerCase().includes(QUALITY_THRESHOLDS.requiredLicense) &&
+    longestSide <= maxResolution &&
+    candidate.fileSize <= maxFileSize &&
+    hasValidLicense &&
     candidate.url && candidate.url.length > 0
   );
 }
@@ -279,7 +431,7 @@ function validateCandidate(candidate: ImageCandidate): boolean {
 // =====================================================
 
 /**
- * Discover images for a single figure
+ * Discover images for a single figure using Wikipedia-first approach
  */
 async function discoverImagesForFigure(
   figureName: string,
@@ -290,6 +442,56 @@ async function discoverImagesForFigure(
   console.log(`🔍 Discovering images for: ${figureName}`);
 
   const allCandidates: ImageCandidate[] = [];
+
+  // ========================================
+  // STEP 1: Try Wikipedia Infobox Image First
+  // ========================================
+  console.log(`📖 Step 1: Checking Wikipedia infobox...`);
+
+  // Try main name first
+  let wikiCandidate = await getWikipediaInfoboxImage(figureName);
+
+  // If main name fails, try aliases
+  if (!wikiCandidate && aliases.length > 0) {
+    for (const alias of aliases.slice(0, 2)) { // Try first 2 aliases
+      console.log(`   Trying alias: ${alias}`);
+      wikiCandidate = await getWikipediaInfoboxImage(alias);
+      if (wikiCandidate) break;
+    }
+  }
+
+  // Validate and enhance the Wikipedia candidate
+  if (wikiCandidate) {
+    const validatedWiki = await validateWikipediaImage(wikiCandidate);
+    if (validatedWiki) {
+      // Calculate scores for the Wikipedia image
+      validatedWiki.qualityScore = calculateQualityScore(validatedWiki, figureName, aliases);
+      validatedWiki.relevanceScore = calculateRelevanceScore(validatedWiki, figureName, aliases);
+      validatedWiki.totalScore = validatedWiki.qualityScore + validatedWiki.relevanceScore;
+
+      allCandidates.push(validatedWiki);
+      console.log(`🎉 SUCCESS: Found perfect Wikipedia infobox image!`);
+
+      // If Wikipedia gives us a great result, return it immediately
+      if (validatedWiki.totalScore >= 80) { // Excellent match
+        const result: DiscoveryResult = {
+          figureName,
+          aliases,
+          candidates: allCandidates,
+          topCandidates: [validatedWiki],
+          searchTime: Date.now() - startTime,
+          totalFound: allCandidates.length,
+          validCandidates: allCandidates.length
+        };
+        return result;
+      }
+    }
+  }
+
+  // ========================================
+  // STEP 2: Fallback to Wikimedia Search (if Wikipedia fails)
+  // ========================================
+  console.log(`🔍 Step 2: Falling back to Wikimedia Commons search...`);
 
   // Try different search strategies
   for (const strategy of SEARCH_STRATEGIES) {
@@ -383,15 +585,19 @@ function displayResults(result: DiscoveryResult): void {
   if (result.topCandidates.length > 0) {
     console.log(`\n🏆 TOP CANDIDATES:`);
     result.topCandidates.forEach((candidate, index) => {
-      console.log(`\n${index + 1}. ${candidate.filename}`);
+      const sourceIcon = candidate.source === 'Wikipedia Infobox' ? '📖' : '🔍';
+      console.log(`\n${index + 1}. ${sourceIcon} ${candidate.filename}`);
       console.log(`   URL: ${candidate.url}`);
       console.log(`   Resolution: ${candidate.width}x${candidate.height}`);
       console.log(`   Size: ${Math.round(candidate.fileSize / 1024)}KB`);
       console.log(`   License: ${candidate.license}`);
       console.log(`   Artist: ${candidate.artist}`);
-      console.log(`   Quality Score: ${candidate.qualityScore}/55`);
+      console.log(`   Source: ${candidate.source}`);
+      const qualityMax = candidate.source === 'Wikipedia Infobox' ? 65 : 55;
+      const totalMax = qualityMax + 55;
+      console.log(`   Quality Score: ${candidate.qualityScore}/${qualityMax}`);
       console.log(`   Relevance Score: ${candidate.relevanceScore}/55`);
-      console.log(`   Total Score: ${candidate.totalScore}/110`);
+      console.log(`   Total Score: ${candidate.totalScore}/${totalMax}`);
     });
   } else {
     console.log(`\n❌ No suitable candidates found`);
