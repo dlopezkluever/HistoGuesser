@@ -673,6 +673,63 @@ async function main() {
 
     askFigure();
 
+  } else if (args.includes('--batch-migration')) {
+    // Batch process for migration - get Wikipedia infobox images only
+    const migrationFigures = [
+      "Catherine the Great", "Otto von Bismarck", "Margaret Thatcher", "Charles de Gaulle", "Vladimir Lenin",
+      "Franklin D. Roosevelt", "Fidel Castro", "Che Guevara", "Theodore Roosevelt", "Simón Bolívar",
+      "Mao Zedong", "Jawaharlal Nehru", "Haile Selassie", "Alexander the Great", "Hannibal Barca",
+      "Saladin", "Richard the Lionheart", "Hernán Cortés", "Stonewall Jackson", "Ulysses S. Grant",
+      "Dwight D. Eisenhower", "Erwin Rommel", "Douglas MacArthur", "T.E. Lawrence", "Isoroku Yamamoto",
+      "Vo Nguyen Giap", "Archimedes", "Copernicus", "Antonie van Leeuwenhoek", "Carl Linnaeus",
+      "Alfred Nobel", "Thomas Edison", "Nikola Tesla", "Linus Pauling", "Richard Feynman",
+      "Carl Sagan", "J. Robert Oppenheimer", "Subrahmanyan Chandrasekhar", "Hideki Yukawa",
+      "Augustine of Hippo", "Francis of Assisi", "Martin Luther", "Ignatius Loyola", "John Calvin",
+      "Mother Teresa", "Billy Graham", "Pope John Paul II", "Desmond Tutu", "Dalai Lama XIV",
+      "Muhammad", "Gautama Buddha", "Michelangelo Buonarroti", "Ludwig van Beethoven", "Frédéric Chopin",
+      "Vincent van Gogh", "Johann Sebastian Bach", "Mark Twain", "Ernest Hemingway", "Louis Armstrong",
+      "Charlie Chaplin", "Toni Morrison", "Rabindranath Tagore", "Yasunari Kawabata", "Amelia Earhart",
+      "Marco Polo", "Christopher Columbus", "Ferdinand Magellan", "James Cook", "Lewis and Clark",
+      "Roald Amundsen", "Ernest Shackleton", "Howard Carter", "Jacque Cousteau", "Ranulph Fiennes",
+      "Zheng He", "Ibn Battuta", "Susan B. Anthony", "Elizabeth Blackwell", "Florence Nightingale",
+      "Marie Curie", "Rosa Luxemburg", "Harriet Tubman", "Frederick Douglass", "Jane Addams",
+      "Wangari Maathai", "Eleanor Roosevelt", "Mahatma Gandhi", "Malala Yousafzai", "Andrew Carnegie",
+      "John D. Rockefeller", "Henry Ford", "J.P. Morgan", "Cornelius Vanderbilt", "John Jacob Astor",
+      "Andrew Mellon", "Warren Buffett", "Bill Gates", "Jeff Bezos", "Mukesh Ambani", "Li Ka-shing"
+    ];
+
+    console.log(`🔍 Processing ${migrationFigures.length} figures for migration...`);
+
+    const wikiImages: { [key: string]: string } = {};
+
+    for (const figureName of migrationFigures) {
+      try {
+        console.log(`📖 Getting Wikipedia image for: ${figureName}`);
+        const wikiCandidate = await getWikipediaInfoboxImage(figureName);
+
+        if (wikiCandidate) {
+          const validated = await validateWikipediaImage(wikiCandidate);
+          if (validated) {
+            wikiImages[figureName] = validated.url;
+            console.log(`✅ Found: ${validated.url}`);
+          } else {
+            console.log(`❌ Failed validation for ${figureName}`);
+          }
+        } else {
+          console.log(`❌ No Wikipedia image found for ${figureName}`);
+        }
+
+        // Rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (error) {
+        console.error(`❌ Error processing "${figureName}":`, error);
+      }
+    }
+
+    // Output results as JSON for easy processing
+    console.log('\n📋 WIKIPEDIA IMAGES RESULTS:');
+    console.log(JSON.stringify(wikiImages, null, 2));
+
   } else {
     // Direct figure names
     for (const figureName of args) {
