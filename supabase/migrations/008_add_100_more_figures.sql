@@ -200,12 +200,6 @@ INSERT INTO figures (name, aliases, images, birth_year, death_year, active_year,
  'American inventor who developed many devices that greatly influenced life around the world. Holds 1,093 patents, including the practical electric light bulb.',
  ARRAY['scientist', 'inventor', 'modern', 'america', 'usa']),
 
-('Nikola Tesla', ARRAY['Tesla'],
- '[{"url": "https://upload.wikimedia.org/wikipedia/commons/7/79/Tesla_circa_1890.jpeg", "license": "Public Domain", "credit": "Napoleon Sarony", "source_url": "https://commons.wikimedia.org/wiki/File:N.Tesla.JPG"}]'::jsonb,
- 1856, 1943, 1893, 'Smiljan, Croatia', 44.5511, 15.3164,
- 'Serbian-American inventor and electrical engineer who pioneered the alternating current (AC) electricity system. Made groundbreaking contributions to electromagnetism.',
- ARRAY['inventor', 'scientist', 'engineer', 'modern', 'europe']),
-
 ('Linus Pauling', ARRAY['Pauling'],
  '[{"url": "https://upload.wikimedia.org/wikipedia/commons/5/53/Linus_Pauling_in_the_1940s.jpg", "license": "Public Domain", "credit": "Unknown", "source_url": "https://commons.wikimedia.org/wiki/File:Linus_Pauling.jpg"}]'::jsonb,
  1901, 1994, 1931, 'Portland, Oregon', 45.5152, -122.6784,
@@ -486,12 +480,6 @@ INSERT INTO figures (name, aliases, images, birth_year, death_year, active_year,
  'British nurse who revolutionized nursing during the Crimean War. Founded modern nursing and statistical analysis in healthcare.',
  ARRAY['nurse', 'reformer', 'statistician', 'modern', 'europe', 'italy', 'female']),
 
-('Marie Curie', ARRAY['Curie', 'Madame Curie'],
- '[{"url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Marie_Curie_c._1920s.jpg", "license": "Public Domain", "credit": "Unknown", "source_url": "https://commons.wikimedia.org/wiki/File:Marie_Curie_c1920.jpg"}]'::jsonb,
- 1867, 1934, 1903, 'Warsaw, Poland', 52.2297, 21.0122,
- 'Polish physicist and chemist who conducted pioneering research on radioactivity. First woman to win a Nobel Prize and only person to win Nobel Prizes in two different sciences.',
- ARRAY['scientist', 'physicist', 'chemist', 'modern', 'europe', 'poland', 'female', 'nobel_laureate']),
-
 ('Rosa Luxemburg', ARRAY['Luxemburg'],
  '[{"url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Rosa_Luxemburg_%28cropped%29.jpg", "license": "Public Domain", "credit": "Unknown", "source_url": "https://commons.wikimedia.org/wiki/File:Rosa_Luxemburg_1915.jpg"}]'::jsonb,
  1871, 1919, 1898, 'Zamość, Poland', 50.7184, 23.2519,
@@ -533,12 +521,6 @@ INSERT INTO figures (name, aliases, images, birth_year, death_year, active_year,
  1869, 1948, 1920, 'Porbandar, India', 21.6417, 69.6293,
  'Indian lawyer and anti-colonial nationalist who employed nonviolent resistance to lead the successful campaign for India''s independence from British rule.',
  ARRAY['activist', 'politics', 'modern', 'asia', 'india']),
-
-('Malala Yousafzai', ARRAY['Malala'],
- '[{"url": "https://upload.wikimedia.org/wikipedia/commons/0/03/Malala_Yousafzai_2023_portrait_2x3.jpg", "license": "CC BY 2.0", "credit": "Russell Watkins/DFID", "source_url": "https://commons.wikimedia.org/wiki/File:Malala_Yousafzai_2015.jpg"}]'::jsonb,
- 1997, NULL, 2014, 'Mingora, Pakistan', 34.7797, 72.3603,
- 'Pakistani activist for female education and the youngest Nobel Prize laureate. Survived an assassination attempt by the Taliban at age 15.',
- ARRAY['activist', 'education', 'modern', 'asia', 'pakistan', 'female', 'nobel_laureate']),
 
 -- BUSINESS (12 figures: 5 Europe, 4 Americas, 2 Asia, 1 Other)
 ('Andrew Carnegie', ARRAY['Carnegie'],
