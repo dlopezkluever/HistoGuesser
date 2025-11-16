@@ -60,10 +60,3 @@ ORDER BY policyname;
 -- ✅ Authenticated users can access their own data
 
 -- If you see "permission denied" errors, RLS policies need fixing.
-
-
-
-
-
-
-
