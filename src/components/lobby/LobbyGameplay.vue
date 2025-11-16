@@ -414,8 +414,8 @@ const advanceRound = () => {
             :target-lon="currentFigure?.lon || 0"
             :show-target="false"
             :interactive="!hasSubmitted"
-            @guess="handleMapClick"
             class="w-full h-64 lg:h-80"
+            @guess="handleMapClick"
           />
 
           <!-- Inputs -->
@@ -433,9 +433,9 @@ const advanceRound = () => {
 
             <!-- Submit Button -->
             <button
-              @click="handleSubmitGuess"
               :disabled="!canSubmit"
               class="w-full btn-primary py-3 text-lg"
+              @click="handleSubmitGuess"
             >
               <span v-if="isSubmitting">Submitting...</span>
               <span v-else-if="hasSubmitted">Submitted ✓</span>

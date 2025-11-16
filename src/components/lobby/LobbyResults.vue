@@ -78,7 +78,7 @@ const handleBackToMenu = () => {
       </Card>
 
       <!-- Winner Announcement -->
-      <Card class="mb-6 text-center" v-if="sortedPlayers.length > 0">
+      <Card v-if="sortedPlayers.length > 0" class="mb-6 text-center">
         <div class="mb-4">
           <div class="text-6xl mb-2">{{ getMedal(1) }}</div>
           <h2 class="text-2xl font-bold text-noir-gold mb-1">
@@ -128,17 +128,17 @@ const handleBackToMenu = () => {
       <Card>
         <div class="flex gap-3">
           <Button
-            @click="handlePlayAgain"
             variant="primary"
             class="flex-1"
+            @click="handlePlayAgain"
           >
             Play Again
           </Button>
 
           <Button
-            @click="handleBackToMenu"
             variant="secondary"
             class="flex-1"
+            @click="handleBackToMenu"
           >
             Back to Menu
           </Button>

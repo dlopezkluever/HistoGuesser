@@ -74,10 +74,10 @@ const handleBack = () => {
       <!-- Create Game Section -->
       <div class="mb-8">
         <Button
-          @click="handleCreateLobby"
           :disabled="isLoading"
           class="w-full mb-4"
           variant="primary"
+          @click="handleCreateLobby"
         >
           {{ isLoading ? 'Creating...' : 'Create New Game' }}
         </Button>
@@ -96,7 +96,7 @@ const handleBack = () => {
       <!-- Join Game Section -->
       <div class="mb-6">
         <h3 class="text-noir-text font-medium mb-3 text-center">Join Existing Game</h3>
-        <form @submit.prevent="handleJoinLobby" class="space-y-3">
+        <form class="space-y-3" @submit.prevent="handleJoinLobby">
           <Input
             v-model="roomCode"
             placeholder="Enter room code (e.g. ABC123)"
@@ -123,8 +123,8 @@ const handleBack = () => {
       <!-- Back Button -->
       <div class="text-center">
         <button
-          @click="handleBack"
           class="text-noir-text opacity-60 hover:opacity-100 transition-opacity text-sm"
+          @click="handleBack"
         >
           ← Back to Menu
         </button>
