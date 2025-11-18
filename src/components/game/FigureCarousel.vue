@@ -5,7 +5,7 @@
       <div class="image-wrapper">
         <Transition name="image-fade" mode="out-in">
           <img
-            v-if="currentDisplayImage"
+            v-if="currentDisplayImage && !loading"
             :key="`${currentDisplayImage.url}-${currentFallbackIndex}`"
             :src="currentDisplayImage.url"
             :alt="altText"
@@ -18,17 +18,9 @@
             <p class="text-noir-text/60 mt-4">
               {{ loadingMessage }}
             </p>
-            <div v-if="showFallbackIndicator" class="fallback-indicator">
-              <p class="text-noir-gold/80 text-sm">
-                Trying alternative source... ({{ currentFallbackIndex + 1 }}/{{ maxFallbackAttempts }})
-              </p>
-            </div>
           </div>
           <div v-else key="error" class="error-state">
             <p class="text-noir-text/60">Image unavailable</p>
-            <p class="text-noir-text/40 text-sm mt-2">
-              All {{ attemptedImagesCount }} sources failed to load
-            </p>
           </div>
         </Transition>
       </div>
@@ -70,9 +62,7 @@
       <!-- Debug info (only in development) -->
       <div v-if="isDevMode" class="debug-info">
         <small class="text-noir-text/40 text-xs">
-          Priority: {{ currentDisplayImage?.priority || 'N/A' }} |
-          Status: {{ currentDisplayImage?.status || 'N/A' }} |
-          Fallback: {{ currentFallbackIndex + 1 }}/{{ maxFallbackAttempts }}
+          Status: {{ currentDisplayImage?.status || 'N/A' }}
         </small>
       </div>
     </div>
@@ -104,8 +94,7 @@ const currentFallbackIndex = ref(0);
 const maxFallbackAttempts = ref(0);
 const attemptedImagesCount = ref(0);
 
-// Image cache to avoid repeated failures
-const imageCache = new Map<string, boolean>();
+// Simplified image handling
 
 // Development mode detection
 const isDevMode = computed(() => {
@@ -116,6 +105,12 @@ const isDevMode = computed(() => {
 // Only include active and fallback status images
 const availableImages = computed(() => {
   return props.images
+    ?.map(img => ({
+      ...img,
+      // Default missing fields
+      priority: img.priority ?? 1,
+      status: img.status ?? 'active'
+    }))
     ?.filter(img => img.status === 'active' || img.status === 'fallback')
     ?.sort((a, b) => a.priority - b.priority) || [];
 });
@@ -129,58 +124,14 @@ const currentDisplayImage = computed(() => {
   return image;
 });
 
-// Loading message based on fallback state
-const loadingMessage = computed(() => {
-  if (currentFallbackIndex.value === 0) {
-    return 'Loading image...';
-  } else {
-    return 'Loading alternative source...';
-  }
-});
+// Loading message
+const loadingMessage = computed(() => 'Loading image...');
 
-// Show fallback indicator during retries
-const showFallbackIndicator = computed(() => {
-  return loading.value && currentFallbackIndex.value > 0;
-});
+// Simplified - no fallback indicators needed
 
-// Pre-load images with priority-based fallback logic
-const preloadImageWithFallback = async (image: FigureImage): Promise<boolean> => {
-  return new Promise((resolve) => {
-    // Check cache first
-    const cacheKey = image.url;
-    if (imageCache.has(cacheKey)) {
-      const cached = imageCache.get(cacheKey);
-      console.log(`🖼️ Cache hit for ${image.url}: ${cached ? 'success' : 'failed'}`);
-      resolve(cached!);
-      return;
-    }
+// Simplified image handling - no preloading needed
 
-    const img = new Image();
-
-    img.onload = () => {
-      console.log('🖼️ Image preloaded successfully:', image.url);
-      imageCache.set(cacheKey, true);
-      resolve(true);
-    };
-
-    img.onerror = () => {
-      console.error('❌ Image preload failed:', image.url);
-      imageCache.set(cacheKey, false);
-      resolve(false);
-    };
-
-    // Set timeout to avoid hanging
-    setTimeout(() => {
-      console.warn('⏰ Image preload timeout:', image.url);
-      imageCache.set(cacheKey, false);
-      resolve(false);
-    }, 10000); // 10 second timeout
-
-    img.src = image.url;
-  });
-};
-
-// Try to load current image with automatic fallback
+// Simplified image loading - just set the current image
 const loadImageWithFallback = async (startIndex = 0) => {
   loading.value = true;
   imageError.value = false;
@@ -194,22 +145,11 @@ const loadImageWithFallback = async (startIndex = 0) => {
     return;
   }
 
-  maxFallbackAttempts.value = availableImages.value.length;
-  attemptedImagesCount.value = 0;
-
-  // Try to load the image
-  const success = await preloadImageWithFallback(image);
-  attemptedImagesCount.value++;
-
-  if (success) {
-    console.log('✅ Image loaded successfully');
+  // Just set loading to false after a short delay to show the image
+  // The actual img element will handle loading/error states
+  setTimeout(() => {
     loading.value = false;
-    imageError.value = false;
-  } else {
-    console.warn('⚠️ Primary image failed, no fallback available');
-    loading.value = false;
-    imageError.value = true;
-  }
+  }, 100);
 };
 
 // Watch for image changes and start loading
