@@ -473,7 +473,7 @@ INSERT INTO figures (name, aliases, images, birth_year, death_year, active_year,
  1821, 1910, 1849, 'Bristol, England', 51.4552, -2.5967,
  'British-American physician and the first woman to receive a medical degree in the United States. Advocate for women in medicine.',
  ARRAY['social', 'physician', 'activist', 'modern', 'europe', 'england', 'female']),
-
+  
 ('Florence Nightingale', ARRAY['Nightingale', 'Lady with the Lamp'],
  '[{"url": "https://upload.wikimedia.org/wikipedia/commons/a/ab/Florence_Nightingale_%28H_Hering_NPG_x82368%29.jpg", "license": "Public Domain", "credit": "Unknown", "source_url": "https://commons.wikimedia.org/wiki/File:Florence_Nightingale_portrait.jpg"}]'::jsonb,
  1820, 1910, 1854, 'Florence, Italy', 43.7696, 11.2558,
