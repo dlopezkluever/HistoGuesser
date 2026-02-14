@@ -16,6 +16,7 @@ export interface FigureImage {
   source_url: string
   priority: number // 1=primary, 2=secondary, 3=tertiary
   status: 'active' | 'fallback' | 'broken'
+  source?: 'self_hosted' | 'wikimedia'
 }
 
 /**
