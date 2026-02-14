@@ -37,7 +37,7 @@ export interface BatchValidationResult {
   duration: number;
 }
 
-export interface FigureValidationResult {a
+export interface FigureValidationResult {
   figureId: string;
   figureName: string;
   totalImages: number;
