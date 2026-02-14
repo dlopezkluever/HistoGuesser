@@ -238,6 +238,47 @@ async function main() {
     const totalValid = results.reduce((sum, r) => sum + r.validImages, 0);
     console.log(`Overall success rate: ${totalValid}/${totalImages} (${((totalValid / totalImages) * 100).toFixed(1)}%)`);
 
+    // Step 6: Source-aware breakdown (self-hosted vs wikimedia)
+    console.log('');
+    console.log('📦 IMAGE SOURCE BREAKDOWN');
+    console.log('='.repeat(40));
+
+    let selfHostedTotal = 0, selfHostedValid = 0;
+    let wikimediaTotal = 0, wikimediaValid = 0;
+    let unknownTotal = 0, unknownValid = 0;
+
+    for (const figure of figures) {
+      const images: FigureImage[] = figure.images || [];
+      for (const img of images) {
+        const source = (img as any).source;
+        const result = results
+          .find(r => r.figureId === figure.id)
+          ?.results.find(r => r.url === img.url);
+        const isValid = result?.isValid ?? false;
+
+        if (source === 'self_hosted') {
+          selfHostedTotal++;
+          if (isValid) selfHostedValid++;
+        } else if (source === 'wikimedia') {
+          wikimediaTotal++;
+          if (isValid) wikimediaValid++;
+        } else {
+          unknownTotal++;
+          if (isValid) unknownValid++;
+        }
+      }
+    }
+
+    if (selfHostedTotal > 0) {
+      console.log(`Self-hosted:  ${selfHostedValid}/${selfHostedTotal} valid (${((selfHostedValid / selfHostedTotal) * 100).toFixed(1)}%)`);
+    }
+    if (wikimediaTotal > 0) {
+      console.log(`Wikimedia:    ${wikimediaValid}/${wikimediaTotal} valid (${((wikimediaValid / wikimediaTotal) * 100).toFixed(1)}%)`);
+    }
+    if (unknownTotal > 0) {
+      console.log(`Other/legacy: ${unknownValid}/${unknownTotal} valid (${((unknownValid / unknownTotal) * 100).toFixed(1)}%)`);
+    }
+
   } catch (error) {
     console.error('❌ Script failed:', error);
     process.exit(1);
