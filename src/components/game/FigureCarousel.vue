@@ -91,8 +91,6 @@ const imageError = ref(false);
 
 // Image loading and fallback state
 const currentFallbackIndex = ref(0);
-const maxFallbackAttempts = ref(0);
-const attemptedImagesCount = ref(0);
 
 // Simplified image handling
 
@@ -201,9 +199,15 @@ const handleImageLoad = () => {
 
 const handleImageError = () => {
   console.error('❌ Image failed to load in DOM');
-  // This shouldn't happen if preload worked, but handle it anyway
-  loading.value = false;
-  imageError.value = true;
+  // Try the next priority image in the sorted list
+  const nextIndex = currentIndex.value + 1;
+  if (nextIndex < availableImages.value.length) {
+    console.log(`🔄 Falling back to next priority image (${nextIndex + 1}/${availableImages.value.length})`);
+    currentIndex.value = nextIndex;
+  } else {
+    loading.value = false;
+    imageError.value = true;
+  }
 };
 
 // Keyboard navigation
@@ -235,8 +239,6 @@ onUnmounted(() => {
   if (typeof window !== 'undefined') {
     window.removeEventListener('keydown', handleKeydown);
   }
-  // Clear cache to prevent memory leaks
-  imageCache.clear();
 });
 </script>
 
