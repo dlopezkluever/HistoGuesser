@@ -299,9 +299,9 @@
    ↓
  Step 3 (generate batches iteratively — 3-4 rounds of ~50)
    ↓
- Step 4 (final validation pass)
+ Step 4 (final validation pass)     
  
- # *RECS FOR FIRST PLAN IMPROVEMENT*:
+# *RECS FOR FIRST PLAN IMPROVEMENT*:
  
 This is a **very strong plan**. Structurally, it’s exactly what a scalable Phase 2 should look like.
 
@@ -851,3 +851,148 @@ Then this becomes a production-grade ingestion system.
          ↓
  Step 4 (Final validation)
 ╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+
+
+
+---
+--
+---
+
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+❯ we recently implemented the following plan: 'c:/Users/Daniel                                             
+  Lopez/Desktop/Neet-a-thon/Histo-Guesser/._docs/recent-plan-we-built.md' as part of completing            
+  **Phase 2: Data Collection Pipeline** of our 'c:/Users/Daniel                                            
+  Lopez/Desktop/Neet-a-thon/Histo-Guesser/._docs/tasklists/figures-game-mode-dev-battle-plan.md'...        inst your Supabase project. Everything else 
+  Every commit since this commit (iD: 45d3d660eae4cebc0e2c60d2d45f33ec99e080c5) is related to the          
+  edits made in looking to compelet the phase 2 build out. Now I need instruction on how to test the       
+  implementation and basically next steps; do i need to run a migration, or what do I need to do?          
+
+● Let me read the plan and battle plan documents, and also check what's been committed since that commit.  ────────────────────────────────────────────
+
+● Read 2 files (ctrl+o to expand)                                                                          ────────────────────────────────────────────
+
+● Bash(cd "/c/Users/Daniel Lopez/Desktop/Neet-a-thon/Histo-Guesser" && git log
+      45d3d660eae4cebc0e2c60d2d45f33ec99e080c5..HEAD --oneline)
+  ⎿  f1f2ead end phase 2 battle plan raw
+     ecadafb  Fixed pre-existing typo ({a → {) in interface
+     44cdade Added source-aware breakdown in summary           (self-hosted vs wikimedia vs legacy hea     
+     … +15 lines (ctrl+o to expand)
+
+● Good, I can see all the Phase 2 commits. Let me now check the actual files to give you precise next      
+  steps.
+
+● Explore(Explore Phase 2 implementation files)
+  ⎿  Initializing…
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ continue  
+
+● Let me check the key files directly.
+
+● Searched for 3 patterns, read 2 files (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Daniel Lopez/Desktop/Neet-a-thon/Histo-Guesser" && cat .env 2>/dev/null | grep -i      
+      "SUPA" | head -5 || echo "No .env found")
+  ⎿  VITE_SUPABASE_URL=https://wmzinowylibtdwtqonow.supabase.co
+     VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indte     
+     mlub3d5bGlidGR3dHFvbm93Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxODU0NjMsImV4cCI6MjA3Nzc2MTQ2M30.HHXZm7     
+     hrSOtjCd2S2QxmPM8-McGWKr-Ge_og7LXoxGo
+
+● Bash(cd "/c/Users/Daniel Lopez/Desktop/Neet-a-thon/Histo-Guesser" && cat .env.local 2>/dev/null | grep -i       "SUPA" | head -5 || echo "No .env.local found")
+  ⎿  # Supabase Configuration
+     VITE_SUPABASE_URL=https://wmzinowylibtdwtqonow.supabase.co
+     VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indte     
+     … +2 lines (ctrl+o to expand)
+
+● Bash(cd "/c/Users/Daniel Lopez/Desktop/Neet-a-thon/Histo-Guesser" && npx supabase --version 2>/dev/null  
+      || echo "Supabase CLI not installed")
+  ⎿  2.76.8
+
+● Bash(cd "/c/Users/Daniel Lopez/Desktop/Neet-a-thon/Histo-Guesser" && ls supabase/config.toml 2>/dev/null 
+      && head -30 supabase/config.toml 2>/dev/null || echo "No sup…)
+  ⎿  No supabase config.toml found
+
+● Searched for 2 patterns (ctrl+o to expand)
+
+● Now I have the full picture. Here's exactly what you need to do:
+
+  ---
+  Next Steps: Testing Phase 2 Implementation
+
+  Step 0: Get your Service Role Key
+
+  The scripts (upload-figure-images.ts, insert-validated-figures.ts) require SUPABASE_SERVICE_ROLE_KEY,    
+  which you don't have in your .env or .env.local yet.
+
+  1. Go to your Supabase Dashboard → Project Settings → API
+  2. Copy the service_role key (the secret one, NOT the anon key)
+  3. Add it to your .env.local:
+  SUPABASE_SERVICE_ROLE_KEY=eyJ...your-key-here...
+
+  Step 1: Run Migration 012
+
+  Since you don't have supabase/config.toml (no local Supabase link), you've likely been running migrations   manually. You have two options:
+
+  Option A — Supabase Dashboard (what you've probably been doing):
+  1. Go to Supabase Dashboard → SQL Editor
+  2. Paste the contents of supabase/migrations/012_figure_image_storage.sql
+  3. Run it
+
+  Option B — Link the CLI and push:
+  supabase init    # creates config.toml
+  supabase link --project-ref wmzinowylibtdwtqonow
+  supabase db push # pushes all un-applied migrations
+
+  The migration does 3 things:
+  - Creates a figure-images storage bucket (public read, service-role write)
+  - Adds research_stage column to figures table
+  - Backfills all existing figures with research_stage = 'seed'
+
+  Step 2: Verify the Migration Worked
+
+  After running the migration, verify in the Supabase Dashboard:
+  - Storage tab → you should see a figure-images bucket
+  - Table Editor → figures table → should have a research_stage column (all values = 'seed')
+
+  Step 3: Test the Image Upload Script (Backfill)
+
+  This is Step 1d from the plan — backfilling existing ~130 figures with self-hosted images.
+
+  # Dry run first (no changes, just shows what it would do)
+  npm run upload-images:dry
+
+  # If that looks good, run for real
+  npm run upload-images
+
+  Or test on a single figure first:
+  npx tsx scripts/upload-figure-images.ts --figure-id <pick-any-figure-uuid-from-db>
+
+  Step 4: Validate Images
+
+  npm run validate-images
+
+  This should now report self-hosted vs wikimedia health separately (per your commit 44cdade).
+
+  Step 5: Test the Frontend
+
+  npm run dev
+
+  Play a Free Play round and confirm:
+  - Self-hosted images load as primary
+  - If you deliberately break a self-hosted URL in the DB, the wikimedia fallback kicks in (per your       
+  handleImageError changes in commit 958979e)
+
+  ---
+  After That: The Pipeline (Steps 2-3 of the plan)
+
+  Once the backfill is proven, you're ready to use the pipeline for new figures:
+
+  1. Generate candidates — Create a JSON file following scripts/figure-candidates-schema.json (you generate   this with AI in batches of ~25 per category)
+  2. Validate — npm run validate-candidates -- --input candidates-batch1.json
+  3. Review — Check the output for needs_review entries, fix or approve them
+  4. Insert — npm run insert-figures:dry first, then npm run insert-figures
+
+  ---
+  TL;DR: The immediate blocker is (1) add the service role key to .env.local, and (2) run migration 012    
+  against your Supabase project. Everything else is already built and ready to test.
