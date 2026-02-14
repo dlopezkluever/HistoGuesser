@@ -11,7 +11,12 @@
     "format": "prettier --write src/",
     "validate-images": "npx tsx scripts/validate-figures-images.ts",
     "validate-images:apply": "npx tsx scripts/validate-figures-images.ts --apply-updates",
-    "find-images": "npx tsx scripts/find-figure-images.ts"
+    "find-images": "npx tsx scripts/find-figure-images.ts",
+    "upload-images": "npx tsx scripts/upload-figure-images.ts",
+    "upload-images:dry": "npx tsx scripts/upload-figure-images.ts --dry-run",
+    "validate-candidates": "npx tsx scripts/validate-figure-candidates.ts",
+    "insert-figures": "npx tsx scripts/insert-validated-figures.ts",
+    "insert-figures:dry": "npx tsx scripts/insert-validated-figures.ts --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
