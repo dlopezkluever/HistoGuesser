@@ -28,9 +28,9 @@ config({ path: '.env.local' });
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const BUCKET_NAME = 'figure-images';
-const RATE_LIMIT_MS = 300;
+const RATE_LIMIT_MS = 1000;
 const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 1000;
+const RETRY_DELAY_MS = 2000;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
   console.error('❌ Missing environment variables');
@@ -135,9 +135,18 @@ async function downloadImage(url: string): Promise<{ buffer: ArrayBuffer; conten
     try {
       const response = await fetch(url, {
         headers: {
-          'User-Agent': 'HistoGuesser/1.0 (Educational Game)'
+          'User-Agent': 'HistoGuesser/1.0 (https://github.com/HistoGuesser; educational geography game)',
+          'Accept': 'image/*'
         }
       });
+
+      if (response.status === 429) {
+        const retryAfter = parseInt(response.headers.get('retry-after') || '5', 10);
+        const waitMs = Math.max(retryAfter * 1000, RETRY_DELAY_MS * attempt * 2);
+        console.log(`   ⚠️ Attempt ${attempt}: HTTP 429 — waiting ${waitMs / 1000}s`);
+        if (attempt < MAX_RETRIES) await sleep(waitMs);
+        continue;
+      }
 
       if (!response.ok) {
         console.log(`   ⚠️ Attempt ${attempt}: HTTP ${response.status}`);
