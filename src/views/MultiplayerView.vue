@@ -203,8 +203,8 @@ const debugSetLobby = () => {
           <h2 class="text-xl text-noir-red mb-4">Error</h2>
           <p class="text-noir-text mb-4">{{ error }}</p>
           <button
-            @click="$router.go(-1)"
             class="btn-primary"
+            @click="$router.go(-1)"
           >
             Go Back
           </button>
@@ -222,8 +222,8 @@ const debugSetLobby = () => {
           <p><strong>Players Count:</strong> {{ players?.length || 0 }}</p>
           <p><strong>Loading:</strong> {{ isLoading }}</p>
           <button
-            @click="debugSetLobby"
             class="mt-2 px-4 py-2 bg-noir-gold text-noir-bg rounded hover:bg-noir-gold/80 transition-colors"
+            @click="debugSetLobby"
           >
             🔧 Test State Management
           </button>
@@ -234,8 +234,8 @@ const debugSetLobby = () => {
           <p class="text-red-400 mb-2">🔴 RENDERING: Create/Join Screen</p>
           <LobbyCreateJoin />
           <button
-            @click="onCreateClick"
             class="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            @click="onCreateClick"
           >
             🎯 Debug: Test Create Button
           </button>
@@ -283,4 +283,3 @@ const debugSetLobby = () => {
     </div>
   </div>
 </template>
-

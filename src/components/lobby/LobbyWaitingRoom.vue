@@ -107,9 +107,9 @@ const handleLeaveLobby = () => {
           <div class="flex items-center justify-center gap-3 mb-4">
             <h1 class="font-heading text-2xl text-noir-gold">LOBBY</h1>
             <button
-              @click="handleCopyCode"
               class="btn-secondary text-sm px-3 py-1"
               title="Copy room code"
+              @click="handleCopyCode"
             >
               {{ lobby.room_code }}
             </button>
@@ -168,10 +168,10 @@ const handleLeaveLobby = () => {
         <div class="flex gap-3">
           <!-- Ready Button (for all players) -->
           <Button
-            @click="handleToggleReady"
             :variant="currentPlayer?.ready ? 'secondary' : 'primary'"
             class="flex-1"
             :disabled="isLoading"
+            @click="handleToggleReady"
           >
             {{ currentPlayer?.ready ? 'Not Ready' : 'Ready' }}
           </Button>
@@ -179,20 +179,20 @@ const handleLeaveLobby = () => {
           <!-- Start Game Button (for host only) -->
           <Button
             v-if="isHost"
-            @click="handleStartGame"
             :disabled="!canStartGame || isLoading"
             class="flex-1"
             variant="primary"
+            @click="handleStartGame"
           >
             {{ isLoading ? 'Starting...' : 'Start Game' }}
           </Button>
 
           <!-- Leave Lobby Button -->
           <Button
-            @click="handleLeaveLobby"
             variant="secondary"
             class="px-6"
             :disabled="isLoading"
+            @click="handleLeaveLobby"
           >
             Leave
           </Button>

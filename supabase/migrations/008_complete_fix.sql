@@ -74,8 +74,3 @@ ALTER TABLE daily_challenges ENABLE ROW LEVEL SECURITY;
 
 -- This should work for authenticated users only
 -- SELECT COUNT(*) FROM player_stats;
-
-
-
-
-

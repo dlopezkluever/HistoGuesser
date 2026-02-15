@@ -8,7 +8,15 @@
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-pattern .gitignore",
-    "format": "prettier --write src/"
+    "format": "prettier --write src/",
+    "validate-images": "npx tsx scripts/validate-figures-images.ts",
+    "validate-images:apply": "npx tsx scripts/validate-figures-images.ts --apply-updates",
+    "find-images": "npx tsx scripts/find-figure-images.ts",
+    "upload-images": "npx tsx scripts/upload-figure-images.ts",
+    "upload-images:dry": "npx tsx scripts/upload-figure-images.ts --dry-run",
+    "validate-candidates": "npx tsx scripts/validate-figure-candidates.ts",
+    "insert-figures": "npx tsx scripts/insert-validated-figures.ts",
+    "insert-figures:dry": "npx tsx scripts/insert-validated-figures.ts --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.78.0",
@@ -26,6 +34,7 @@
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-vue": "^6.0.0",
     "autoprefixer": "^10.4.16",
+    "dotenv": "^17.2.3",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.28.0",
@@ -33,6 +42,7 @@
     "prettier": "^3.3.3",
     "react": "^18.3.1",
     "tailwindcss": "^3.4.0",
+    "tsx": "^4.7.1",
     "typescript": "^5.6.3",
     "vite": "^7.1.12",
     "vue-tsc": "^2.1.10"

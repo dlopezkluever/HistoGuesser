@@ -1,544 +1,320 @@
 # **HistoGuesser - Comprehensive Development Progress Report**
 
-**Generated:** November 13, 2025  
-**Current Status:** 🚀 **PRODUCTION-READY MVP** - All core features functional with deployment-ready codebase
+**Last Updated:** February 13, 2026
+**Current Branch:** `feature/more-figures-and-game-modes`
+**Current Status:** MVP Functional (with significant known issues) - Not production-ready
 
 ---
 
-## **🎯 Executive Summary**
+## **Executive Summary**
 
-**HistoGuesser** is a fully functional web-based geography and history guessing game built with Vue 3 + TypeScript + Supabase. Players identify historical figures by guessing their **name**, **birth location**, and **birth year** through an interactive map, timeline slider, and text input.
+**HistoGuesser** is a web-based geography and history guessing game built with Vue 3 + TypeScript + Supabase. Players identify historical figures by guessing their **name**, **birth location**, and **birth year** through an interactive map, timeline slider, and text input.
 
-**Core Achievement:** Complete end-to-end gameplay across all three game modes with production-grade reliability, Film Noir theming, and comprehensive scoring systems.
+**What Works:**
+- Free Play Mode: Full 10-round single-player games (no auth required)
+- Daily Challenge: Competitive daily games with leaderboards and streaks (auth required)
+- Multiplayer (2-player): Real-time lobbies with synchronized gameplay (auth required)
+- User Authentication: Registration, login, profile management
+- Film Noir themed UI across all components
 
-**Current Working Features:**
-- ✅ **Free Play Mode**: Full 10-round single-player games
-- ✅ **Daily Challenge**: Competitive daily games with leaderboards and streaks
-- ✅ **Multiplayer (2-player)**: Real-time lobbies with synchronized gameplay
-- ✅ **User Authentication**: Registration, login, profile management
-- ✅ **Responsive Design**: Mobile-first Film Noir UI
+**What Doesn't Work or Is Incomplete:**
+- LobbyView.vue is a stub ("Coming Soon")
+- Multiplayer UI has debug panels permanently visible
+- No toast rendering system (toasts are managed in state but never displayed)
+- 3+ player multiplayer is untested and likely broken
+- No test suite of any kind
 
 ---
 
-## **🏗️ Technical Architecture**
+## **Technical Architecture**
 
 ### **Frontend Stack**
 ```
-Vite 7.1.12           - Build tool & dev server
-Vue 3.5.22            - Progressive framework
-TypeScript 5.6.3      - Type safety
-TailwindCSS 3.4.0     - Utility-first styling
-Zustand 5.0.8         - State management (legacy features)
-Pinia 3.0.4           - State management (multiplayer)
-Leaflet.js 1.9.4      - Interactive maps
-Day.js 1.11.19        - Date/time utilities
+Vue 3.5.22           - Progressive framework (Composition API)
+TypeScript 5.6.3     - Type safety (heavily suppressed in Supabase layer)
+Vite 7.1.12          - Build tool & dev server
+TailwindCSS 3.4.0    - Utility-first styling
+Zustand 5.0.8        - State management (auth, game, UI stores)
+Pinia 3.0.4          - State management (lobby/multiplayer store)
+Leaflet.js 1.9.4     - Interactive maps
+Day.js 1.11.19       - Date/time utilities
+vue-router 4.6.3     - Client-side routing
 ```
 
 ### **Backend Infrastructure**
 ```
-Supabase 2.78.0        - PostgreSQL database + Auth + Realtime
-Vercel                - Frontend hosting & deployment
+Supabase 2.78.0       - PostgreSQL database + Auth + Realtime
+Vercel                - Frontend hosting & deployment (configured)
 ```
 
-### **Key Dependencies**
-- **@supabase/supabase-js**: Database, auth, real-time subscriptions
-- **@types/leaflet**: TypeScript definitions for maps
-- **ESLint 9.39.0**: Code linting with flat config
-- **Prettier 3.3.3**: Code formatting
+### **Notable DevDependencies**
+```
+react 18.3.1          - Listed as devDependency (legacy Zustand requirement, unused)
+tsx 4.7.1             - TypeScript execution for scripts
+dotenv 17.2.3         - Environment variable loading for scripts
+```
 
 ---
 
-## **💾 Database Schema & Migrations**
+## **Database Schema**
 
 ### **Core Tables**
-```sql
-figures (
-  id UUID PRIMARY KEY,
-  name TEXT, aliases TEXT[],
-  images JSONB[], birth_year INTEGER,
-  lat DOUBLE PRECISION, lon DOUBLE PRECISION,
-  hometown TEXT, description TEXT, tags TEXT[]
-)
-
-users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id),
-  email TEXT UNIQUE, username TEXT UNIQUE,
-  avatar_url TEXT, created_at TIMESTAMPTZ
-)
-
-player_stats (
-  user_id UUID PRIMARY KEY REFERENCES users(id),
-  total_games INTEGER, best_score INTEGER,
-  daily_streak INTEGER, last_daily_date DATE
-)
-
-daily_scores (
-  id UUID PRIMARY KEY,
-  user_id UUID REFERENCES users(id),
-  challenge_date DATE, score INTEGER,
-  UNIQUE(user_id, challenge_date)
-)
-```
+- **figures** - 130+ historical figures with images, coordinates, birth years, aliases, tags
+- **users** - User profiles linked to Supabase auth.users
+- **player_stats** - Aggregated stats per user (games played, best score, streak)
+- **daily_scores** - One-per-day challenge scores with leaderboard support
 
 ### **Multiplayer Tables**
-```sql
-lobbies (
-  id UUID PRIMARY KEY,
-  room_code TEXT UNIQUE, host_id UUID REFERENCES users(id),
-  status TEXT, current_round INTEGER, figure_ids UUID[]
-)
+- **lobbies** - Game rooms with room codes, host, status, figure selection
+- **lobby_players** - Players in each lobby with ready state and scores
+- **lobby_submissions** - Per-round guess submissions with scoring data
 
-lobby_players (
-  id UUID PRIMARY KEY,
-  lobby_id UUID REFERENCES lobbies(id),
-  user_id UUID REFERENCES users(id),
-  username TEXT, score INTEGER, ready BOOLEAN
-)
-
-lobby_submissions (
-  id UUID PRIMARY KEY,
-  lobby_id UUID REFERENCES lobbies(id),
-  user_id UUID REFERENCES users(id),
-  round_number INTEGER, figure_id UUID,
-  guessed_name TEXT, guessed_lat DOUBLE PRECISION,
-  guessed_lon DOUBLE PRECISION, guessed_year INTEGER,
-  submission_time DOUBLE PRECISION, score INTEGER
-)
+### **Migration Files (14 total, with naming conflicts)**
+```
+001_initial_schema.sql
+002_multiplayer_tables.sql
+003_row_level_security.sql
+004_seed_figures.sql (original 30 figures)
+005_anonymous_freeplay_access.sql
+006_daily_challenge_tables.sql
+007_enhance_image_fallback_support.sql    ← DUPLICATE NUMBER
+007_fix_anonymous_figure_access.sql       ← DUPLICATE NUMBER
+008_add_100_more_figures.sql              ← DUPLICATE NUMBER
+008_complete_fix.sql                      ← DUPLICATE NUMBER
+009_test_rls_policies.sql
+010_fix_ambiguous_columns.sql
+011_fix_get_or_create_daily_challenge.sql
 ```
 
-### **Migration Order**
-1. `001_initial_schema.sql` - Core tables + daily challenge
-2. `002_multiplayer_tables.sql` - Lobby tables
-3. `003_row_level_security.sql` - Security policies
-4. `004_seed_figures.sql` - 30 historical figures
-5. `005_anonymous_freeplay_access.sql` - Guest access
-6. `006_daily_challenge_tables.sql` - Daily functions
-
-### **Security Features**
-- **Row Level Security (RLS)** enabled on all tables
-- **Anonymous access** to figures table for Free Play
-- **Authenticated-only** access to user data and submissions
-- **Host-controlled** lobby management
-- **Immutable submissions** after creation
+### **RLS Policies**
+Row Level Security is enabled on all tables with the following strategy:
+- **figures**: Read access for authenticated users; anonymous access added via migration 005/007
+- **users**: Read all, insert/update own only
+- **player_stats**: Read all, insert/update own only
+- **daily_scores**: Read all, insert own only, updates blocked (immutable)
+- **lobbies**: Read all, create own, update/delete host-only
+- **lobby_players**: Read all, insert/update/delete own only
+- **lobby_submissions**: Read by lobby participants, insert own only, update/delete blocked
 
 ---
 
-## **🎮 Core Features Implementation**
+## **State Management Architecture**
 
-### **Gameplay Mechanics**
+### **Hybrid Approach (Zustand + Pinia)**
+The project uses two different state management libraries:
 
-#### **Scoring System (Max 2,500 points per round)**
-```typescript
-// Location Accuracy (0-800 points)
-spatialScore = max(0, round(800 - (distanceKm / 10)))
+| Store | Library | Purpose |
+|-------|---------|---------|
+| `authStore` | Zustand (vanilla) | Authentication state, user session |
+| `gameStore` | Zustand (vanilla) | Single-player game state |
+| `uiStore` | Zustand (vanilla) | Toasts, modals, loading, sidebar |
+| `lobbyStore` | Pinia | Multiplayer lobby state |
 
-// Temporal Accuracy (0-800 points)
-temporalScore = max(0, round(800 - (abs(yearDiff) / 2)))
-
-// Name Accuracy (0/200/400/600/800 points)
-nameScore = calculateFuzzyMatch(guess, correctName, aliases)
-
-// Speed Bonus (0-100 points - Daily/Multiplayer only)
-speedBonus = max(0, min(100, 110 - floor(timeSeconds / 2) * 10))
-```
-
-#### **Interactive Components**
-- **InteractiveMap**: Leaflet.js with custom pins, distance calculation, reveal animations
-- **TimelineSlider**: BCE/CE toggle, year input sync, 5-year snap increments
-- **FigureCarousel**: Image navigation with lazy loading
-- **NameInput**: Fuzzy matching with Levenshtein algorithm
-- **ScoreBreakdown**: Animated progress bars with detailed breakdowns
-
-### **Game Modes**
-
-#### **Free Play Mode** ✅ **FULLY FUNCTIONAL**
-- 10 random historical figures per game
-- Unlimited replays with local scoring
-- No authentication required
-- Skip/hint functionality available
-- Complete reveal phase with educational content
-
-#### **Daily Challenge** ✅ **FULLY FUNCTIONAL**
-- Deterministic figure selection per date (MD5 hash-based)
-- 45-second timer with speed bonus
-- One attempt per day per user
-- Global leaderboard (top 100 + user ranking)
-- Streak tracking with fire emoji 🔥
-- Server-side validation prevents cheating
-
-#### **Multiplayer Mode** ✅ **2-PLAYER FUNCTIONAL**
-- Unique 6-character room codes
-- Real-time player synchronization
-- 45-second round timers with auto-advance
-- Round-by-round leaderboards
-- Synchronized reveal phases
-- Player-ready system for round progression
-- Broadcast-based real-time updates
-
-### **Authentication & User Management**
-- **Supabase Auth**: Email/password with optional email verification
-- **Profile Management**: Username changes, avatar support, stats display
-- **Guest-to-User Conversion**: Seamless signup prompts in results screens
-- **Automatic Stats Tracking**: Games played, best scores, daily streaks
-- **Data Consistency**: Sync between auth.users and custom users table
+Zustand stores are bridged to Vue reactivity via the custom `useStore` composable that subscribes to store changes and wraps state in a Vue `ref`.
 
 ---
 
-## **🎨 Design System**
-
-### **Film Noir Theme**
-```css
-/* Color Palette */
---noir-bg: #3B3A3A;      /* Charcoal background */
---noir-surface: #000000; /* Black surfaces */
---noir-text: #F1E6D6;    /* Cream text */
---noir-red: #550000;     /* Dark red CTAs */
---noir-gold: #CBA135;    /* Gold accents */
-```
-
-### **Typography**
-- **Bebas Neue**: Titles and logos (display font)
-- **Playfair Display**: Headings and emphasis
-- **Inter**: Body text (system font)
-- **JetBrains Mono**: Numbers, scores, data
-
-### **UI Components Library**
-- **Button**: Primary/secondary/ghost variants with loading states
-- **Card**: Flexible containers with Film Noir styling
-- **Modal**: Accessible dialogs with backdrop and focus management
-- **Input**: Form controls with validation states
-- **MainMenu**: Navigation with auth-aware states
-
----
-
-## **📁 Project Structure**
+## **Project Structure**
 
 ```
 src/
 ├── components/
-│   ├── ui/           # Reusable UI components
+│   ├── ui/              # Reusable UI components (5)
 │   │   ├── Button.vue, Card.vue, Modal.vue, Input.vue, MainMenu.vue
-│   ├── game/         # Game-specific components
+│   ├── game/            # Game-specific components (8)
 │   │   ├── InteractiveMap.vue, TimelineSlider.vue, FigureCarousel.vue
 │   │   ├── GameplayView.vue, RevealPhase.vue, ScoreBreakdown.vue
-│   └── lobby/        # Multiplayer components
-│       ├── LobbyCreateJoin.vue, LobbyWaitingRoom.vue, LobbyGameplay.vue
-├── composables/      # Vue composition functions
+│   │   ├── NameInput.vue, ResultsScreen.vue
+│   └── lobby/           # Multiplayer components (4)
+│       ├── LobbyCreateJoin.vue, LobbyWaitingRoom.vue
+│       ├── LobbyGameplay.vue, LobbyResults.vue
+├── composables/         # Vue composition functions (5)
 │   ├── useAuth.ts, useMap.ts, useRoundTimer.ts, useLobby.ts, useStore.ts
-├── lib/              # Core business logic
-│   ├── scoring/      # calculateScore.ts, spatialScore.ts, etc.
-│   ├── matching/     # fuzzyMatch.ts (Levenshtein algorithm)
-│   ├── geography/    # haversine.ts (custom implementation)
-│   └── supabase/     # client.ts, auth.ts, queries.ts, realtime.ts
-├── stores/           # State management
-│   ├── authStore.ts  # Zustand - authentication
-│   ├── gameStore.ts  # Zustand - single-player games
-│   ├── lobbyStore.ts # Pinia - multiplayer state
-│   └── uiStore.ts    # Zustand - UI state
-├── views/            # Page-level components
+├── lib/                 # Core business logic
+│   ├── scoring/         # calculateScore.ts, spatialScore.ts, temporalScore.ts,
+│   │                    # nameScore.ts, speedBonus.ts
+│   ├── matching/        # fuzzyMatch.ts (Levenshtein distance)
+│   ├── geography/       # haversine.ts
+│   ├── utils/           # validation.ts, constants.ts, dateTime.ts, imageValidator.ts
+│   └── supabase/        # client.ts, auth.ts, queries.ts, realtime.ts, test-connection.ts
+├── stores/              # State management
+│   ├── authStore.ts     # Zustand - authentication
+│   ├── gameStore.ts     # Zustand - single-player games
+│   ├── lobbyStore.ts    # Pinia - multiplayer state
+│   └── uiStore.ts       # Zustand - UI state
+├── views/               # Page-level components (9)
 │   ├── HomeView.vue, LoginView.vue, FreePlayView.vue
 │   ├── DailyChallengeView.vue, LeaderboardView.vue
-│   └── MultiplayerView.vue, LobbyView.vue
-├── types/            # TypeScript definitions
+│   ├── MultiplayerView.vue, LobbyView.vue (stub)
+│   ├── ProfileView.vue, ResultsView.vue, NotFoundView.vue
+├── types/               # TypeScript definitions (6)
 │   ├── figure.ts, user.ts, game.ts, lobby.ts, score.ts, database.ts
-└── styles/           # Global styles
-    ├── main.css, components.css
+├── router/              # Vue Router config
+│   ├── index.ts, guards.ts
+├── styles/              # Global styles
+│   ├── main.css, components.css
+├── main.ts              # App entry point
+└── App.vue              # Root component
+
+scripts/                 # Development/maintenance scripts (10)
+├── validate-figures-images.ts
+├── find-figure-images.ts
+├── get-wiki-images.ts
+├── fix_figure_tags.ts
+├── ensure_first_tag_category.ts
+├── clean_migration_duplicates.ts
+├── add_image_metadata.ts
+├── fix_migration_images.ts
+├── update_migration_urls.ts
+└── 100-new-links.json
+
+supabase/migrations/     # Database migrations (14 files)
+._docs/                  # Documentation (extensive, partially outdated)
 ```
 
 ---
 
-## **🔧 State Management Architecture**
+## **Scoring System (Max 2,500 points per round)**
 
-### **Hybrid Approach**
-- **Zustand v5**: Authentication, single-player games, UI state
-- **Pinia v3**: Multiplayer lobby state (better real-time reactivity)
-
-### **Key Stores**
-
-#### **authStore.ts (Zustand)**
-```typescript
-interface AuthState {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  error: string | null
-}
+```
+Spatial Score:  max(0, round(800 - distanceKm / 10))     → 0-800 pts
+Temporal Score: max(0, round(800 - abs(yearDiff) / 2))    → 0-800 pts
+Name Score:     Tiered fuzzy match (Levenshtein distance)  → 0/200/400/600/800 pts
+Speed Bonus:    max(0, min(100, 110 - floor(t/2) * 10))   → 0-100 pts (daily/multiplayer only)
 ```
 
-#### **gameStore.ts (Zustand)**
-```typescript
-interface GameState {
-  currentGame: GameSession | null
-  currentRound: Round | null
-  figures: Figure[]
-  isLoading: boolean
-}
-```
-
-#### **lobbyStore.ts (Pinia)**
-```typescript
-interface LobbyState {
-  lobby: Lobby | null
-  players: LobbyPlayer[]
-  currentRound: number
-  gameStatus: 'waiting' | 'in_progress' | 'finished'
-  playersReadyForNextRound: string[]
-}
-```
+Total possible per game (10 rounds): **25,000 points**
 
 ---
 
-## **🔄 Development Phases & Achievements**
+## **Routing**
 
-### **Phase 0: Infrastructure Setup** ✅ **COMPLETED**
-- Vue 3 + TypeScript + Vite project setup
-- Film Noir TailwindCSS theme configuration
-- Supabase integration with type-safe client
-- Core directory structure and state management
-- Database schema with RLS policies
-- Scoring algorithms and fuzzy matching
-- 30 historical figures seeded
+| Path | View | Auth Required |
+|------|------|--------------|
+| `/` | HomeView (MainMenu) | No |
+| `/login` | LoginView | No |
+| `/play/free` | FreePlayView | No |
+| `/play/daily` | DailyChallengeView | Yes |
+| `/multiplayer` | MultiplayerView | Yes |
+| `/lobby/:code` | LobbyView (stub) | Yes |
+| `/results` | ResultsView | No |
+| `/leaderboard` | LeaderboardView | No |
+| `/profile` | ProfileView | Yes |
+| `*` | NotFoundView | No |
 
-### **Phase 1: Free Play Mode** ✅ **COMPLETED**
-- Complete UI component library
-- Interactive map with Leaflet.js integration
-- Timeline slider with BCE/CE support
-- Figure carousel and name input
-- Full scoring system integration
+---
+
+## **Development Phases Completed**
+
+### Phase 0: Infrastructure Setup
+- Vue 3 + TypeScript + Vite project scaffolding
+- Film Noir TailwindCSS theme
+- Supabase integration
+- Core directory structure
+- Database schema with RLS
+- Scoring algorithms
+- Initial 30 historical figures
+
+### Phase 1: Free Play Mode
+- Complete gameplay flow (10-round games)
+- Interactive map (Leaflet.js)
+- Timeline slider with BCE/CE
+- Figure carousel with image fallbacks
+- Name input with fuzzy matching
 - Reveal phase with score breakdowns
-- Results screen with play-again functionality
-- Authentication error handling fixes
+- Results screen
 
-### **Phase 1.5: Auth System Refinement** ✅ **COMPLETED**
-- `useAuth` composable with reactive state
-- Profile management with username validation
-- Automatic player stats tracking
-- Data consistency between auth tables
-- Guest-to-user conversion flow
+### Phase 1.5: Auth System
+- `useAuth` composable
+- Profile management
+- Player stats tracking
+- Guest-to-user conversion prompts
 
-### **Phase 2: Daily Challenge & Leaderboards** ✅ **COMPLETED**
-- Daily challenge generation with deterministic figure selection
-- 45-second timer with speed bonus calculation
-- Leaderboard system with top 100 + user ranking
-- Streak tracking and personal bests
-- Server-side score validation
-- Guest signup prompts in results
+### Phase 2: Daily Challenge & Leaderboards
+- Deterministic daily figure selection (server-side RPC)
+- 45-second timer with speed bonus
+- Leaderboard (top 100 + user ranking)
+- Streak tracking
+- Server-side score submission via RPC
 
-### **Phase 3: Multiplayer System** ✅ **2-PLAYER COMPLETE**
-- Real-time lobby creation and joining
-- Player synchronization with broadcast events
-- Synchronized gameplay with round timers
-- Submission system with database persistence
-- Round progression with player-ready system
-- Production-grade error handling and recovery
-- Deployment-ready with Vercel compatibility
+### Phase 3: Multiplayer (2-Player)
+- Real-time lobby system with room codes
+- Player synchronization via Supabase Realtime
+- Broadcast + postgres_changes dual-channel strategy
+- Round timers with auto-submit on timeout
+- Player-ready system for round progression
+- Pinia store for multiplayer state
 
----
-
-## **🚀 Current Status & Working Features**
-
-### **Fully Functional** ✅
-- **User Registration/Login**: Complete auth flow with profile management
-- **Free Play Mode**: End-to-end 10-round games with full scoring
-- **Daily Challenge**: Timer, scoring, leaderboards, streak tracking
-- **Multiplayer (2-player)**: Complete lobby flow with real-time sync
-- **Responsive Design**: Mobile-first with touch-friendly interactions
-- **Film Noir UI**: Consistent theming across all components
-- **Data Persistence**: Scores, stats, and submissions properly saved
-
-### **Known Issues & Limitations**
-- **InteractiveMap Component**: Currently broken (marked in codebase)
-- **Image Flicker**: Brief display of wrong images between rounds (affects all modes)
-- **Multiplayer Scalability**: 3+ player sync needs testing (lobby creation works)
-- **Mobile Responsiveness**: Multiplayer untested on mobile devices
-- **Build Errors**: Some TypeScript compilation issues with Supabase types
-
-### **Production Readiness** ✅
-- **Build Status**: TypeScript compilation successful for Vercel deployment
-- **Database**: All migrations applied with proper RLS policies
-- **Error Handling**: Comprehensive recovery mechanisms implemented
-- **Performance**: Optimized reactivity and memory management
-- **Security**: Server-side validation and authenticated access control
+### Current Branch: Feature/More-Figures-and-Game-Modes
+- Added 100 new historical figures (migration 008)
+- Image validation and management scripts
+- Figure tagging system for future category-based game modes
+- Image fallback support enhancement
+- Planning docs for new game modes
 
 ---
 
-## **🛠️ Development Environment Setup**
+## **Where We Currently Stand**
 
-### **Prerequisites**
-- Node.js 18+ and npm
-- Supabase account and project
+### Functional and Tested
+- Free Play: Works end-to-end for anonymous and authenticated users
+- Daily Challenge: Works for authenticated users with leaderboard integration
+- Multiplayer: Works for 2-player games with real-time sync (tested manually)
+- Auth: Login, signup, profile management all functional
 
-### **Installation Steps**
-```bash
-# 1. Clone and install
-git clone <repository-url>
-cd Histo-Guesser
-npm install
+### In Progress / Incomplete
+- **New game modes** (category-based): Planning stage only, no code implementation
+- **3+ player multiplayer**: Code theoretically supports up to 8, but untested
+- **Image management**: Scripts built for validation and finding replacements, partially integrated
+- **Figure pool expansion**: 130+ figures in DB but image URLs may be broken (Wikipedia hotlinks)
 
-# 2. Environment setup
-cp .env.example .env
-# Edit .env with Supabase credentials:
-# VITE_SUPABASE_URL=https://your-project.supabase.co
-# VITE_SUPABASE_ANON_KEY=your-anon-key
+### Not Started
+- Automated testing (unit, integration, e2e)
+- Production deployment optimization
+- Performance monitoring / error tracking
+- Password reset / email verification
+- Mobile-specific optimization for multiplayer
+- Lobby chat
+- Player disconnect/reconnect handling
+- Social features
 
-# 3. Database migrations (run in Supabase SQL Editor)
-# Execute migrations in order: 001 → 002 → 003 → 004 → 005 → 006
-
-# 4. Development server
-npm run dev  # http://localhost:3000
-
-# 5. Production build
-npm run build && npm run preview
-```
-
-### **Available Scripts**
-```json
-{
-  "dev": "vite",                    // Development server
-  "build": "vue-tsc && vite build", // Production build
-  "preview": "vite preview",         // Preview production build
-  "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-pattern .gitignore",
-  "format": "prettier --write src/" // Format code
-}
-```
+### Known Bugs
+- Debug UI panels permanently visible in MultiplayerView
+- Toast notifications managed in state but never rendered (no Toast component)
+- FigureCarousel references undefined `imageCache` variable
+- LobbyView.vue is a stub (routes exist but page says "Coming Soon")
+- Duplicate SQL migration numbers (007 and 008) will break migration runners
+- 370+ console.log statements throughout production code
 
 ---
 
-## **🎯 Key Technical Decisions & Lessons Learned**
+## **Environment & Build**
 
-### **Architecture Choices**
-1. **Custom Haversine Implementation**: Chose custom distance calculation over `leaflet-geodesic` for reliability and zero dependencies
-2. **Hybrid State Management**: Zustand for single-player, Pinia for multiplayer - avoided costly full migration
-3. **Supabase Realtime Strategy**: Broadcast-based events with postgres_changes fallbacks for robust real-time sync
-4. **Server-side Score Validation**: All scoring happens in database functions to prevent manipulation
-
-### **Critical Bug Fixes Applied**
-1. **Zustand React Hook Conflicts**: Migrated to vanilla Zustand API to resolve Vue compatibility issues
-2. **Multiplayer Submission Race Conditions**: Implemented player-ready system to prevent desync during round progression
-3. **Database Column Ambiguity**: Added explicit table aliases in complex SQL queries
-4. **Authentication State Race Conditions**: Fixed signup flow with proper user profile creation timing
-5. **Map Coordinate Validation**: Added sanitization to prevent database constraint failures
-
-### **Performance Optimizations**
-- **Lazy Loading**: Map and image components load on demand
-- **Debounced Updates**: Reduced excessive reactivity recalculations
-- **Memory Management**: Proper cleanup of timers and event listeners
-- **Database Indexing**: Optimized queries for leaderboard performance
-
-### **Development Best Practices**
-- **TypeScript Strict Mode**: `strict: true` with comprehensive type coverage
-- **ESLint v9 Flat Config**: Modern linting configuration
-- **Component Composition**: Feature-based organization with clear separation
-- **Error Boundaries**: Comprehensive error handling throughout the stack
-
----
-
-## **🔮 Future Development Roadmap**
-
-### **Immediate Priorities (Phase 4)**
-1. **InteractiveMap Fix**: Resolve current broken state
-2. **Image Flicker Resolution**: Fix round transition visual issues
-3. **3+ Player Multiplayer Testing**: Verify scalability beyond 2 players
-4. **Mobile Multiplayer Optimization**: Test and optimize touch interactions
-
-### **Short-term Goals (Phase 5)**
-1. **Advanced Multiplayer Features**
-   - Player disconnect/reconnect handling
-   - Game statistics and detailed leaderboards
-   - Lobby chat functionality
-
-2. **Enhanced User Experience**
-   - Loading animations and transitions
-   - Error boundaries and user-friendly messages
-   - Progressive Web App features
-
-### **Long-term Vision (Phase 6+)**
-1. **Advanced Features**
-   - Email verification and password reset
-   - Multi-language support for map labels
-   - Settings modal with user preferences
-   - Social features (friend systems, challenges)
-
-2. **Analytics & Monitoring**
-   - User engagement tracking
-   - Performance monitoring
-   - Automated testing suite
-   - A/B testing framework
-
----
-
-## **📊 Metrics & Statistics**
-
-- **Lines of Code**: ~15,000+ across application
-- **Components**: 18 Vue components (8 game, 5 UI, 5 lobby)
-- **Database Functions**: 10+ PostgreSQL functions for game logic
-- **Real-time Events**: 7 event types with dual fallback system
-- **Test Coverage**: Manual testing with comprehensive console logging
-- **Build Size**: Optimized production bundle with code splitting
-- **Performance**: 99%+ improvement in reactivity after optimizations
-
----
-
-## **🚀 Deployment & Production**
-
-### **Environment Variables (Production-Safe)**
+### Environment Variables
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key  # Safe for browser use
-VITE_APP_NAME=HistoGuesser
-VITE_APP_URL=https://your-app.vercel.app
-VITE_ENABLE_MULTIPLAYER=true
-VITE_ENABLE_DAILY_CHALLENGE=true
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-### **Build Configuration**
-- **Vite**: Optimized chunks and asset handling
-- **TypeScript**: Strict compilation with error checking
-- **Vercel**: Automatic deployments with preview URLs
-- **CDN**: Global edge network for static assets
+### Build Commands
+```bash
+npm run dev              # Development server (port 3000)
+npm run build            # vue-tsc && vite build
+npm run preview          # Preview production build
+npm run lint             # ESLint with auto-fix
+npm run format           # Prettier formatting
+npm run validate-images  # Validate figure image URLs
+npm run find-images      # Find replacement images for broken ones
+```
 
-### **Monitoring & Maintenance**
-- **Error Tracking**: Console logging throughout critical paths
-- **Performance Monitoring**: Built-in Vite bundle analysis
-- **Database Monitoring**: Supabase dashboard for query performance
-- **Real-time Monitoring**: WebSocket connection health checks
-
----
-
-## **🧑‍💻 Developer Quick Start Guide**
-
-### **For New Developers Joining the Project**
-
-1. **Understand the Architecture**: Read this document and `PRD.md` first
-2. **Setup Environment**: Follow installation steps above
-3. **Key Entry Points**:
-   - `src/views/MultiplayerView.vue` - Main multiplayer flow
-   - `src/views/FreePlayView.vue` - Single-player games
-   - `src/stores/lobbyStore.ts` - Multiplayer state management
-   - `src/lib/supabase/queries.ts` - Database operations
-
-4. **Critical Implementation Details**:
-   - Round sync requires all players to click "Next Round" (prevents desync)
-   - Scoring validation happens server-side in PostgreSQL functions
-   - Real-time uses Supabase broadcasts with postgres_changes fallbacks
-   - `@ts-nocheck` used in Supabase files due to complex type inference
-
-5. **Development Workflow**:
-   - `npm run dev` for development with hot reload
-   - `npm run lint` before commits (auto-fixes available)
-   - Manual testing with multiple browser tabs for multiplayer features
-   - Database changes require migration files in `supabase/migrations/`
-
-### **Common Development Tasks**
-- **Adding New Figures**: Insert into `figures` table via SQL or create seed migration
-- **UI Components**: Follow Film Noir theme and existing component patterns
-- **Database Changes**: Create numbered migration files with proper rollback
-- **Real-time Features**: Use broadcast events for cross-client synchronization
+### Build Configuration
+- Manual chunk splitting: vue-vendor, map-vendor, supabase-vendor, utils-vendor
+- Path alias: `@` → `./src`
+- Lazy-loaded routes for code splitting
 
 ---
 
-**Report Generated**: November 13, 2025  
-**Project Status**: 🚀 **PRODUCTION-READY MVP**  
-**Next Phase**: Phase 4 - Bug Fixes & Mobile Optimization  
-
-**The HistoGuesser MVP is complete with all core features functional and ready for user testing. The codebase provides a solid foundation for continued development with comprehensive documentation, type safety, and production-grade reliability.**
+**Report Updated:** February 13, 2026
+**Project Status:** MVP Functional with significant technical debt
+**Current Focus:** Figure pool expansion and game mode planning
+**Next Priority:** Address technical debt before scaling to production
