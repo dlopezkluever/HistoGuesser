@@ -12,7 +12,7 @@ if (typeof globalThis !== 'undefined' && !globalThis.AbortController) {
   globalThis.AbortController = class AbortController {
     signal = { aborted: false };
     abort() { this.signal.aborted = true; }
-  };
+  } as any;
 }
 
 // =====================================================
@@ -84,14 +84,14 @@ export async function validateImageUrl(
         });
       };
 
-      const onError = (error?: Event) => {
+      const onError = (error?: string | Event) => {
         if (resolved) return;
         resolved = true;
         const responseTime = Date.now() - startTime;
         resolve({
           url,
           isValid: false,
-          error: error?.type || 'Unknown error',
+          error: typeof error === 'string' ? error : error?.type || 'Unknown error',
           responseTime,
         });
       };
